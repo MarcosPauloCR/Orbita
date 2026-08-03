@@ -1,0 +1,67 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+
+  /* Tema lua — "céu de dia": cinza pálido, lua como um acento escuro. */
+  --canvas: #eef0f3;
+  --sky-a: #eef0f3;
+  --sky-b: #e2e5ea;
+  --surface: #ffffff;
+  --hairline: #dde0e5;
+  --ink: #20232b;
+  --ink-muted: #6b6f7b;
+  --moon: #20232b;
+  --moon-body: #cfd3da;
+  --btn-ink: #f4f1e6;
+  --star: #b7bcc4;
+  --crater: rgba(32, 35, 43, 0.08);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Tema lua — "céu de noite": chumbo escuro, lua brilhando em creme. */
+    --canvas: #12141a;
+    --sky-a: #14161d;
+    --sky-b: #0e0f14;
+    --surface: #1a1d24;
+    --hairline: #262a33;
+    --ink: #eceef2;
+    --ink-muted: #9195a3;
+    --moon: #f2ecda;
+    --moon-body: #f2ecda;
+    --btn-ink: #14161a;
+    --star: #565c6b;
+    --crater: rgba(18, 20, 26, 0.14);
+  }
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  .animate-fade-in {
+    animation: fade-in 0.4s ease-out;
+  }
+}

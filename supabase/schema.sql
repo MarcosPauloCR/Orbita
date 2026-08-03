@@ -1,0 +1,170 @@
+-- Sinal Vivo — schema Supabase
+-- Rodar no SQL Editor do projeto Supabase (ou via `supabase db push`).
+
+create extension if not exists "pgcrypto";
+
+-- Usuários fixos do app (login próprio, não Supabase Auth). Gravados via
+-- `npm run set-user -- <id> <senha> ["Nome"]` — ver scripts/set-user.mjs.
+create table if not exists users (
+  id text primary key,
+  name text not null,
+  password_hash text not null,
+  created_at timestamptz default now()
+);
+
+alter table users enable row level security;
+
+-- Sem policies para anon/authenticated: login e troca de senha passam
+-- pela service role no backend (Server Actions), mesmo padrão das demais
+-- tabelas.
+
+-- Inscrições de Web Push (uma por dispositivo/navegador instalado).
+create table if not exists push_subscriptions (
+  id uuid default gen_random_uuid() primary key,
+  user_id text not null references users (id) on delete cascade,
+  endpoint text not null unique,
+  p256dh text not null,
+  auth text not null,
+  created_at timestamptz default now()
+);
+
+alter table push_subscriptions enable row level security;
+
+-- Sem policies para anon/authenticated: só a service role grava (ao ativar
+-- notificações) e lê (ao enviar um sinal) essa tabela.
+
+create table if not exists signals (
+  id uuid default gen_random_uuid() primary key,
+  from_user text not null,
+  created_at timestamptz default now()
+);
+
+create table if not exists checkins (
+  id uuid default gen_random_uuid() primary key,
+  from_user text not null,
+  mood int not null check (mood between 1 and 5),
+  note text,
+  created_at timestamptz default now()
+);
+
+-- um check-in por usuário por dia
+create unique index if not exists checkins_one_per_user_per_day
+  on checkins (from_user, ((created_at at time zone 'utc')::date));
+
+create table if not exists updates (
+  id uuid default gen_random_uuid() primary key,
+  from_user text not null,
+  type text not null check (type in ('text', 'photo')),
+  content text,
+  read_at timestamptz,
+  created_at timestamptz default now()
+);
+
+-- "some depois de vista": se true, a foto (linha + arquivo no storage) é
+-- apagada assim que quem recebeu terminar de visualizar.
+alter table updates add column if not exists disappearing boolean not null default false;
+
+-- Chat (mensagens de texto entre os dois usuários). Fica de fora da
+-- publication do Realtime de propósito: o conteúdo é privado, então a
+-- entrega em tempo real é feita via Broadcast (efêmero, não lê a tabela)
+-- disparado pelo próprio client depois que o Server Action confirma a
+-- escrita — nunca por uma subscription direta com a anon key.
+create table if not exists messages (
+  id uuid default gen_random_uuid() primary key,
+  from_user text not null,
+  content text not null,
+  read_at timestamptz,
+  created_at timestamptz default now()
+);
+
+-- Fotos inline no chat: content vira opcional, foto vira um caminho no
+-- mesmo bucket privado das outras fotos do app.
+alter table messages alter column content drop not null;
+alter table messages add column if not exists photo_path text;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint where conname = 'messages_has_content'
+  ) then
+    alter table messages add constraint messages_has_content
+      check (content is not null or photo_path is not null);
+  end if;
+end $$;
+
+alter table messages enable row level security;
+
+-- Sem policies para anon/authenticated: histórico é lido via Server
+-- Component autenticado (service role); a entrega ao vivo é só Broadcast.
+
+-- Cápsula do tempo: mensagem/foto que só pode ser aberta a partir de
+-- `unlock_at`. De propósito não tem coluna nem policy que permita UPDATE de
+-- conteúdo ou DELETE pelo client — a trava é estrutural, não só de UI: quem
+-- manda não tem como apagar depois, e ninguém (nem quem mandou) lê o
+-- conteúdo antes da data, reforçado nas Server Actions.
+create table if not exists capsules (
+  id uuid default gen_random_uuid() primary key,
+  from_user text not null,
+  message text,
+  photo_path text,
+  unlock_at timestamptz not null,
+  opened_at timestamptz,
+  created_at timestamptz default now(),
+  constraint capsules_has_content check (message is not null or photo_path is not null)
+);
+
+alter table capsules enable row level security;
+
+-- Sem policies para anon/authenticated: só a service role lê/grava, e as
+-- Server Actions nunca expõem um caminho de "delete" pra essa tabela.
+
+-- Realtime (idempotente: ALTER PUBLICATION não tem IF NOT EXISTS)
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and tablename = 'signals'
+  ) then
+    alter publication supabase_realtime add table signals;
+  end if;
+
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and tablename = 'updates'
+  ) then
+    alter publication supabase_realtime add table updates;
+  end if;
+end $$;
+
+-- Row Level Security
+-- O app usa a service role key no servidor (Server Actions / Route Handlers),
+-- nunca a anon key diretamente com escrita — então RLS aqui é uma segunda
+-- camada de proteção, não o único controle de acesso.
+alter table signals enable row level security;
+alter table checkins enable row level security;
+alter table updates enable row level security;
+
+-- Nenhuma policy de INSERT/UPDATE/DELETE para anon/authenticated: toda
+-- escrita passa pela service role no backend Next.js (Server Actions),
+-- já autenticado via cookie de sessão próprio da aplicação.
+--
+-- `signals` tem uma policy de SELECT para o client (role anon) porque o
+-- botão de sinal precisa de uma subscription Realtime direto do browser,
+-- e o conteúdo da linha (from_user + timestamp) não é sensível.
+-- `checkins` e `updates` guardam texto/humor/fotos privados, então não
+-- ganham policy de leitura pública — são lidos via Server Component
+-- autenticado (service role) e nunca subscritos direto pelo browser.
+drop policy if exists "signals são públicas para leitura (realtime)" on signals;
+create policy "signals são públicas para leitura (realtime)"
+  on signals for select
+  to anon
+  using (true);
+
+-- Storage: bucket privado para fotos dos updates
+insert into storage.buckets (id, name, public)
+values ('updates-media', 'updates-media', false)
+on conflict (id) do nothing;
+
+-- Sem policies de storage para anon/authenticated pelo mesmo motivo acima:
+-- upload e leitura de fotos passam pela service role no servidor, que
+-- gera signed URLs de curta duração para o client exibir a imagem.
