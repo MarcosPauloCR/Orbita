@@ -12,6 +12,7 @@ import {
   type DuoGame,
   type DuoCategory,
 } from "./actions";
+import { useDeviceMode } from "../GameShell";
 
 const CATEGORY_CONFIG: Record<
   DuoCategory,
@@ -64,6 +65,8 @@ export function DuoGameView({
   suggestions?: string[];
 }) {
   const config = CATEGORY_CONFIG[category];
+  const isDesktop = useDeviceMode() === "desktop";
+  const textSize = isDesktop ? "text-base" : "text-sm";
   const [game, setGame] = useState<DuoGame | null>(null);
   const [score, setScore] = useState({ mine: 0, other: 0 });
   const [loaded, setLoaded] = useState(false);
@@ -171,7 +174,7 @@ export function DuoGameView({
 
       {game && game.status === "done" && (
         <div className="rounded-2xl border border-hairline bg-surface p-4">
-          <p className="text-sm text-ink">{game.prompt}</p>
+          <p className={`${textSize} text-ink`}>{game.prompt}</p>
           {config.needsCreatorAnswer && (
             <p className="mt-1 text-xs text-ink-muted">
               resposta certa: <span className="text-ink">{game.creatorAnswer}</span>
@@ -231,7 +234,7 @@ export function DuoGameView({
         game.status === "awaiting_response" &&
         (game.isCreator ? (
           <div className="rounded-2xl border border-hairline bg-surface p-4">
-            <p className="text-sm text-ink">{game.prompt}</p>
+            <p className={`${textSize} text-ink`}>{game.prompt}</p>
             <p className="mt-2 text-xs text-ink-muted">
               aguardando {otherUserName} responder…
             </p>
@@ -241,7 +244,7 @@ export function DuoGameView({
             onSubmit={handleRespond}
             className="flex flex-col gap-2 rounded-2xl border border-hairline bg-surface p-4"
           >
-            <p className="text-sm text-ink">{game.prompt}</p>
+            <p className={`${textSize} text-ink`}>{game.prompt}</p>
             <input
               value={responseDraft}
               onChange={(e) => setResponseDraft(e.target.value)}
@@ -260,7 +263,7 @@ export function DuoGameView({
 
       {game && game.status === "awaiting_judgment" && (
         <div className="rounded-2xl border border-hairline bg-surface p-4">
-          <p className="text-sm text-ink">{game.prompt}</p>
+          <p className={`${textSize} text-ink`}>{game.prompt}</p>
           {game.isCreator ? (
             <>
               <p className="mt-1 text-xs text-ink-muted">

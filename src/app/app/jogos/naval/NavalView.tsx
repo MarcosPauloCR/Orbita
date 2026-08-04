@@ -10,11 +10,14 @@ import {
   getGame,
   type BattleshipGame,
 } from "./actions";
+import { useDeviceMode } from "../GameShell";
 
 const CHANNEL = "orbita-naval";
 const SHIP_COUNT = 3;
 
 export function NavalView({ otherUserName }: { otherUserName: string }) {
+  const isDesktop = useDeviceMode() === "desktop";
+  const cellSize = isDesktop ? "h-16 w-16 text-2xl" : "h-12 w-12 text-lg";
   const [game, setGame] = useState<BattleshipGame | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [selecting, setSelecting] = useState<number[]>([]);
@@ -136,7 +139,7 @@ export function NavalView({ otherUserName }: { otherUserName: string }) {
                 key={i}
                 type="button"
                 onClick={() => toggleSelect(i)}
-                className={`h-12 w-12 rounded-lg border ${
+                className={`${cellSize} rounded-lg border ${
                   selecting.includes(i)
                     ? "border-moon bg-moon"
                     : "border-hairline bg-surface"
@@ -179,7 +182,7 @@ export function NavalView({ otherUserName }: { otherUserName: string }) {
               type="button"
               onClick={() => handleFire(i)}
               disabled={cell.fired || game.turn !== game.mySide || busy}
-              className={`h-12 w-12 rounded-lg border text-lg ${
+              className={`${cellSize} rounded-lg border ${
                 cell.hit
                   ? "border-red-400 bg-red-400/20"
                   : cell.fired
@@ -201,7 +204,7 @@ export function NavalView({ otherUserName }: { otherUserName: string }) {
           {game.myBoard.map((cell, i) => (
             <div
               key={i}
-              className={`flex h-12 w-12 items-center justify-center rounded-lg border text-lg ${
+              className={`flex ${cellSize} items-center justify-center rounded-lg border ${
                 cell.hit
                   ? "border-red-400 bg-red-400/20"
                   : cell.ship

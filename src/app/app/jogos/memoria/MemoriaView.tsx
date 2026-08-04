@@ -4,10 +4,12 @@ import { useEffect, useRef, useState } from "react";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import { startGame, flipCard, getGame, type MemoryGame } from "./actions";
+import { useDeviceMode } from "../GameShell";
 
 const CHANNEL = "orbita-memoria";
 
 export function MemoriaView({ otherUserName }: { otherUserName: string }) {
+  const isDesktop = useDeviceMode() === "desktop";
   const [game, setGame] = useState<MemoryGame | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -113,7 +115,9 @@ export function MemoriaView({ otherUserName }: { otherUserName: string }) {
             type="button"
             onClick={() => handleFlip(i)}
             disabled={card.matched || !game.myTurn || busy}
-            className={`flex h-12 w-12 items-center justify-center rounded-lg border text-xl ${
+            className={`flex items-center justify-center rounded-lg border ${
+              isDesktop ? "h-20 w-20 text-4xl" : "h-12 w-12 text-xl"
+            } ${
               card.matched
                 ? "border-hairline bg-hairline opacity-50"
                 : "border-hairline bg-surface"

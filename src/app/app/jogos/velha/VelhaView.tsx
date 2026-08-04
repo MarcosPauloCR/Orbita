@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import { startGame, makeMove, getGame, type TicTacToeGame } from "./actions";
+import { useDeviceMode } from "../GameShell";
 
 const CHANNEL = "orbita-velha";
 
@@ -19,6 +20,7 @@ function statusLabel(game: TicTacToeGame, otherUserName: string): string {
 }
 
 export function VelhaView({ otherUserName }: { otherUserName: string }) {
+  const isDesktop = useDeviceMode() === "desktop";
   const [game, setGame] = useState<TicTacToeGame | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
@@ -114,7 +116,9 @@ export function VelhaView({ otherUserName }: { otherUserName: string }) {
                 disabled={
                   cell !== "-" || game.turn !== game.mySymbol || isMoving !== null
                 }
-                className="flex h-16 w-16 items-center justify-center rounded-xl border border-hairline bg-surface font-display text-2xl text-ink disabled:opacity-80"
+                className={`flex items-center justify-center rounded-xl border border-hairline bg-surface font-display text-ink disabled:opacity-80 ${
+                  isDesktop ? "h-24 w-24 text-4xl" : "h-16 w-16 text-2xl"
+                }`}
               >
                 {cell !== "-" ? cell : ""}
               </button>

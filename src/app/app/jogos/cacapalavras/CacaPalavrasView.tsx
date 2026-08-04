@@ -5,11 +5,14 @@ import type { RealtimeChannel } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import { WORDSEARCH_THEMES, type Difficulty } from "@/lib/wordsearch";
 import { startGame, foundWord, getGame, type WordSearchGame } from "./actions";
+import { useDeviceMode } from "../GameShell";
 
 const CHANNEL = "orbita-cacapalavras";
 const THEMES = Object.keys(WORDSEARCH_THEMES);
 
 export function CacaPalavrasView({ otherUserName }: { otherUserName: string }) {
+  const deviceMode = useDeviceMode();
+  const isDesktop = deviceMode === "desktop";
   const [game, setGame] = useState<WordSearchGame | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [mode, setMode] = useState<"coop" | "race">("coop");
@@ -144,7 +147,10 @@ export function CacaPalavrasView({ otherUserName }: { otherUserName: string }) {
       )}
 
       {showStart && (
-        <form onSubmit={handleStart} className="flex flex-col gap-3 w-full max-w-xs">
+        <form
+          onSubmit={handleStart}
+          className={`flex w-full flex-col gap-3 ${isDesktop ? "max-w-sm" : "max-w-xs"}`}
+        >
           <p className="text-[10px] uppercase tracking-wide text-ink-muted">
             caça-palavras
           </p>
@@ -212,7 +218,7 @@ export function CacaPalavrasView({ otherUserName }: { otherUserName: string }) {
 
       {game && game.status === "playing" && (
         <div className="flex flex-col items-center gap-3">
-          <p className="text-xs text-ink-muted">
+          <p className={isDesktop ? "text-sm text-ink-muted" : "text-xs text-ink-muted"}>
             {game.mode === "coop"
               ? `${game.myFound.length} / ${game.words.length} encontradas`
               : `você: ${game.myFound.length} / ${game.words.length} — ${otherUserName}: ${game.otherFoundCount} / ${game.words.length}`}
@@ -237,7 +243,11 @@ export function CacaPalavrasView({ otherUserName }: { otherUserName: string }) {
                     type="button"
                     onClick={() => handleCellClick(index)}
                     disabled={game.myFinished}
-                    className={`flex h-6 w-6 items-center justify-center rounded text-[9px] font-mono sm:h-7 sm:w-7 sm:text-[10px] ${
+                    className={`flex items-center justify-center rounded font-mono ${
+                      isDesktop
+                        ? "h-10 w-10 text-sm"
+                        : "h-6 w-6 text-[9px] sm:h-7 sm:w-7 sm:text-[10px]"
+                    } ${
                       selected
                         ? "bg-moon text-btn-ink"
                         : "border border-hairline bg-surface text-ink"

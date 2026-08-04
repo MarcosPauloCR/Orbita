@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import { createGame, guessLetter, getGame, type HangmanGame } from "./actions";
+import { useDeviceMode } from "../GameShell";
 
 const MOON_STAGES = ["🌑", "🌒", "🌓", "🌔", "🌕", "🌖", "🌗"];
 const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
@@ -21,6 +22,7 @@ export function JogoView({
   otherUserName: string;
   initialGame: HangmanGame | null;
 }) {
+  const isDesktop = useDeviceMode() === "desktop";
   const [game, setGame] = useState<HangmanGame | null>(initialGame);
   const [wordDraft, setWordDraft] = useState("");
   const [themeDraft, setThemeDraft] = useState("");
@@ -151,7 +153,11 @@ export function JogoView({
             </span>
           </div>
 
-          <p className="break-all text-center font-mono text-2xl tracking-widest text-ink">
+          <p
+            className={`break-all text-center font-mono tracking-widest text-ink ${
+              isDesktop ? "text-4xl" : "text-2xl"
+            }`}
+          >
             {game.maskedWord}
           </p>
 
@@ -160,7 +166,7 @@ export function JogoView({
               aguardando {otherUserName} tentar adivinhar…
             </p>
           ) : (
-            <div className="grid grid-cols-7 gap-1">
+            <div className={`grid gap-1.5 ${isDesktop ? "grid-cols-9" : "grid-cols-7"}`}>
               {ALPHABET.map((letter) => {
                 const tried = game.guessedLetters.includes(letter);
                 return (
@@ -169,7 +175,7 @@ export function JogoView({
                     type="button"
                     onClick={() => handleGuess(letter)}
                     disabled={tried || isGuessing !== null}
-                    className={`rounded-lg py-1.5 text-xs ${
+                    className={`rounded-lg ${isDesktop ? "py-3 text-base" : "py-1.5 text-xs"} ${
                       tried
                         ? "bg-hairline text-ink-muted"
                         : "border border-hairline text-ink"

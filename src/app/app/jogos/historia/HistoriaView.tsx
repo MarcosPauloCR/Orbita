@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import { addLine, getStory, type StoryLine } from "./actions";
+import { useDeviceMode } from "../GameShell";
 
 const CHANNEL = "orbita-historia";
 
@@ -14,6 +15,8 @@ export function HistoriaView({
   currentUserId: string;
   otherUserName: string;
 }) {
+  const isDesktop = useDeviceMode() === "desktop";
+  const textSize = isDesktop ? "text-base" : "text-sm";
   const [lines, setLines] = useState<StoryLine[]>([]);
   const [myTurn, setMyTurn] = useState(false);
   const [loaded, setLoaded] = useState(false);
@@ -74,14 +77,18 @@ export function HistoriaView({
         continue a história
       </p>
 
-      <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto rounded-2xl border border-hairline bg-surface p-4">
+      <div
+        className={`flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto rounded-2xl border border-hairline bg-surface p-4 ${
+          isDesktop ? "max-h-[60vh]" : ""
+        }`}
+      >
         {lines.length === 0 && (
           <p className="text-xs text-ink-muted">
             ninguém começou ainda — escreva a primeira frase.
           </p>
         )}
         {lines.map((line) => (
-          <p key={line.id} className="text-sm text-ink">
+          <p key={line.id} className={`${textSize} text-ink`}>
             <span className="text-[10px] text-ink-muted">
               {line.from_user === currentUserId ? "você" : otherUserName}:
             </span>{" "}

@@ -1,9 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 
-type DeviceMode = "mobile" | "desktop";
+export type DeviceMode = "mobile" | "desktop";
 const STORAGE_KEY = "orbita-game-device-mode";
+
+const DeviceModeContext = createContext<DeviceMode>("mobile");
+
+/** Cada jogo usa isso pra decidir tamanho de célula/fonte — "desktop"
+ * deve renderizar elementos visivelmente maiores, não só um container
+ * mais largo em volta do mesmo conteúdo pequeno. */
+export function useDeviceMode(): DeviceMode {
+  return useContext(DeviceModeContext);
+}
 
 export function GameShell({ children }: { children: React.ReactNode }) {
   const [mode, setMode] = useState<DeviceMode | null>(null);
@@ -50,8 +59,8 @@ export function GameShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div
-      className={`flex w-full flex-1 flex-col gap-2 ${
-        mode === "desktop" ? "max-w-2xl" : "max-w-sm"
+      className={`flex w-full flex-1 flex-col items-center gap-2 ${
+        mode === "desktop" ? "max-w-3xl" : "max-w-sm"
       }`}
     >
       <button
@@ -61,7 +70,9 @@ export function GameShell({ children }: { children: React.ReactNode }) {
       >
         trocar dispositivo
       </button>
-      {children}
+      <DeviceModeContext.Provider value={mode}>
+        {children}
+      </DeviceModeContext.Provider>
     </div>
   );
 }
