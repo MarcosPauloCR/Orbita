@@ -61,11 +61,11 @@ const GAMES = [
     available: true,
   },
   {
-    href: "#",
+    href: "/app/jogos/cacapalavras",
     label: "Caça-palavras",
     icon: "🔭",
-    description: "vários temas e dificuldades — em breve",
-    available: false,
+    description: "vários temas e dificuldades, cooperativo ou corrida",
+    available: true,
   },
 ];
 

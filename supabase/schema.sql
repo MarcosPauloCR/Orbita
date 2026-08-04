@@ -295,6 +295,28 @@ create table if not exists story_lines (
 
 alter table story_lines enable row level security;
 
+-- Caça-palavras, dois modos: "coop" (grade única, achar marca pros dois)
+-- e "race" (cada um com sua própria lista de achadas, compara o tempo).
+create table if not exists wordsearch_games (
+  id uuid default gen_random_uuid() primary key,
+  mode text not null check (mode in ('coop', 'race')),
+  theme text not null,
+  difficulty text not null check (difficulty in ('easy', 'medium', 'hard')),
+  grid_size int not null,
+  grid text not null, -- todas as letras da grade, linha a linha, sem separador
+  words text not null, -- palavras da rodada, separadas por vírgula
+  player_a text not null references users (id),
+  player_b text not null references users (id),
+  found_a text not null default '', -- coop: lista compartilhada; race: só as de "a"
+  found_b text not null default '', -- coop: espelho de found_a; race: só as de "b"
+  finished_at_a timestamptz, -- só usado no modo race
+  finished_at_b timestamptz,
+  status text not null default 'playing' check (status in ('playing', 'finished')),
+  created_at timestamptz default now()
+);
+
+alter table wordsearch_games enable row level security;
+
 -- Sem policies para anon/authenticated em nenhum jogo novo: só a service
 -- role lê/grava, mesmo padrão de tudo mais no app.
 

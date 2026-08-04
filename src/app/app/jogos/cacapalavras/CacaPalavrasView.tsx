@@ -1,0 +1,271 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import type { RealtimeChannel } from "@supabase/supabase-js";
+import { createClient } from "@/lib/supabase/client";
+import { WORDSEARCH_THEMES, type Difficulty } from "@/lib/wordsearch";
+import { startGame, foundWord, getGame, type WordSearchGame } from "./actions";
+
+const CHANNEL = "orbita-cacapalavras";
+const THEMES = Object.keys(WORDSEARCH_THEMES);
+
+export function CacaPalavrasView({ otherUserName }: { otherUserName: string }) {
+  const [game, setGame] = useState<WordSearchGame | null>(null);
+  const [loaded, setLoaded] = useState(false);
+  const [mode, setMode] = useState<"coop" | "race">("coop");
+  const [theme, setTheme] = useState(THEMES[0]);
+  const [difficulty, setDifficulty] = useState<Difficulty>("easy");
+  const [busy, setBusy] = useState(false);
+  const [selStart, setSelStart] = useState<number | null>(null);
+  const [selCells, setSelCells] = useState<number[]>([]);
+  const channelRef = useRef<RealtimeChannel | null>(null);
+
+  async function refresh() {
+    const g = await getGame();
+    setGame(g);
+    return g;
+  }
+
+  useEffect(() => {
+    refresh().then(() => setLoaded(true));
+
+    const supabase = createClient();
+    const channel = supabase
+      .channel(CHANNEL)
+      .on("broadcast", { event: "update" }, () => refresh())
+      .subscribe();
+    channelRef.current = channel;
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  function notifyOther() {
+    channelRef.current?.send({ type: "broadcast", event: "update", payload: {} });
+  }
+
+  async function handleStart(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    try {
+      const result = await startGame(mode, theme, difficulty);
+      if (!result.ok) {
+        alert(result.error);
+        return;
+      }
+      await refresh();
+      notifyOther();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function cellCoords(index: number, size: number) {
+    return { x: index % size, y: Math.floor(index / size) };
+  }
+
+  function lineBetween(a: number, b: number, size: number): number[] | null {
+    const pa = cellCoords(a, size);
+    const pb = cellCoords(b, size);
+    const dx = pb.x - pa.x;
+    const dy = pb.y - pa.y;
+    if (dx === 0 && dy === 0) return [a];
+    if (dx !== 0 && dy !== 0 && Math.abs(dx) !== Math.abs(dy)) return null;
+
+    const steps = Math.max(Math.abs(dx), Math.abs(dy));
+    const stepX = Math.sign(dx);
+    const stepY = Math.sign(dy);
+    const cells: number[] = [];
+    for (let i = 0; i <= steps; i++) {
+      const x = pa.x + stepX * i;
+      const y = pa.y + stepY * i;
+      cells.push(y * size + x);
+    }
+    return cells;
+  }
+
+  async function handleCellClick(index: number) {
+    if (!game) return;
+
+    if (selStart === null) {
+      setSelStart(index);
+      setSelCells([index]);
+      return;
+    }
+
+    const line = lineBetween(selStart, index, game.gridSize);
+    setSelStart(null);
+
+    if (!line) {
+      setSelCells([]);
+      return;
+    }
+    setSelCells(line);
+
+    const letters = line
+      .map((i) => game.gridRows[cellCoords(i, game.gridSize).y][cellCoords(i, game.gridSize).x])
+      .join("");
+    const reversed = letters.split("").reverse().join("");
+
+    const remaining = game.words.filter((w) => !game.myFound.includes(w));
+    const match = remaining.find((w) => w === letters || w === reversed);
+
+    setTimeout(() => setSelCells([]), 400);
+    if (!match) return;
+
+    const result = await foundWord(match);
+    if (!result.ok) {
+      alert(result.error);
+      return;
+    }
+    setGame(result.data);
+    notifyOther();
+  }
+
+  if (!loaded) return null;
+
+  const showStart = !game || game.status === "finished";
+
+  return (
+    <div className="flex w-full flex-col items-center gap-4">
+      {game && game.status === "finished" && (
+        <div className="rounded-2xl border border-hairline bg-surface p-4 text-center">
+          <p className="font-display text-lg text-ink">🎉 acharam tudo!</p>
+          {game.mode === "race" && (
+            <p className="mt-1 text-xs text-ink-muted">
+              {game.myFinished
+                ? "você terminou"
+                : `${otherUserName} terminou`}{" "}
+              — comparem quem foi mais rápido!
+            </p>
+          )}
+        </div>
+      )}
+
+      {showStart && (
+        <form onSubmit={handleStart} className="flex flex-col gap-3 w-full max-w-xs">
+          <p className="text-[10px] uppercase tracking-wide text-ink-muted">
+            caça-palavras
+          </p>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setMode("coop")}
+              className={`flex-1 rounded-full px-3 py-1.5 text-xs ${
+                mode === "coop" ? "bg-moon text-btn-ink" : "border border-hairline text-ink"
+              }`}
+            >
+              cooperativo
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode("race")}
+              className={`flex-1 rounded-full px-3 py-1.5 text-xs ${
+                mode === "race" ? "bg-moon text-btn-ink" : "border border-hairline text-ink"
+              }`}
+            >
+              corrida
+            </button>
+          </div>
+          <p className="text-[10px] text-ink-muted">
+            {mode === "coop"
+              ? "os dois veem a mesma grade — quem achar marca pros dois."
+              : "cada um joga sua própria cópia; no final comparam o tempo."}
+          </p>
+
+          <label className="flex flex-col gap-1 text-xs text-ink-muted">
+            tema
+            <select
+              value={theme}
+              onChange={(e) => setTheme(e.target.value)}
+              className="rounded-xl border border-hairline bg-surface px-3 py-2 text-sm text-ink outline-none"
+            >
+              {THEMES.map((t) => (
+                <option key={t} value={t}>{t}</option>
+              ))}
+            </select>
+          </label>
+
+          <label className="flex flex-col gap-1 text-xs text-ink-muted">
+            dificuldade
+            <select
+              value={difficulty}
+              onChange={(e) => setDifficulty(e.target.value as Difficulty)}
+              className="rounded-xl border border-hairline bg-surface px-3 py-2 text-sm text-ink outline-none"
+            >
+              <option value="easy">fácil (9x9, 6 palavras)</option>
+              <option value="medium">médio (11x11, 8 palavras, diagonais)</option>
+              <option value="hard">difícil (13x13, 10 palavras, todas direções)</option>
+            </select>
+          </label>
+
+          <button
+            type="submit"
+            disabled={busy}
+            className="self-start rounded-full bg-moon px-4 py-2 text-xs text-btn-ink disabled:opacity-50"
+          >
+            {busy ? "criando…" : "começar"}
+          </button>
+        </form>
+      )}
+
+      {game && game.status === "playing" && (
+        <div className="flex flex-col items-center gap-3">
+          <p className="text-xs text-ink-muted">
+            {game.mode === "coop"
+              ? `${game.myFound.length} / ${game.words.length} encontradas`
+              : `você: ${game.myFound.length} / ${game.words.length} — ${otherUserName}: ${game.otherFoundCount} / ${game.words.length}`}
+            {game.mode === "race" && game.myFinished && !game.otherFinished && (
+              <span className="block text-ink">
+                terminou! aguardando {otherUserName}…
+              </span>
+            )}
+          </p>
+
+          <div
+            className="grid gap-0.5"
+            style={{ gridTemplateColumns: `repeat(${game.gridSize}, minmax(0, 1fr))` }}
+          >
+            {game.gridRows.flatMap((row, y) =>
+              row.split("").map((letter, x) => {
+                const index = y * game.gridSize + x;
+                const selected = selCells.includes(index);
+                return (
+                  <button
+                    key={index}
+                    type="button"
+                    onClick={() => handleCellClick(index)}
+                    disabled={game.myFinished}
+                    className={`flex h-6 w-6 items-center justify-center rounded text-[9px] font-mono sm:h-7 sm:w-7 sm:text-[10px] ${
+                      selected
+                        ? "bg-moon text-btn-ink"
+                        : "border border-hairline bg-surface text-ink"
+                    }`}
+                  >
+                    {letter}
+                  </button>
+                );
+              })
+            )}
+          </div>
+
+          <div className="flex flex-wrap justify-center gap-1.5">
+            {game.words.map((w) => (
+              <span
+                key={w}
+                className={`rounded-full px-2 py-0.5 text-[10px] ${
+                  game.myFound.includes(w)
+                    ? "bg-hairline text-ink-muted line-through"
+                    : "border border-hairline text-ink"
+                }`}
+              >
+                {w}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
