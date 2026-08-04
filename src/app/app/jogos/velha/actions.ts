@@ -18,6 +18,8 @@ export type TicTacToeGame = {
   board: string[];
   turn: "X" | "O";
   mySymbol: "X" | "O";
+  isCreator: boolean;
+  accepted: boolean;
   status: TicTacToeStatus;
 };
 
@@ -27,10 +29,11 @@ type Row = {
   player_o: string;
   board: string;
   turn: "X" | "O";
+  accepted: boolean;
   status: TicTacToeStatus;
 };
 
-const COLUMNS = "id, player_x, player_o, board, turn, status";
+const COLUMNS = "id, player_x, player_o, board, turn, accepted, status";
 
 function toGame(row: Row, userId: string): TicTacToeGame {
   return {
@@ -38,6 +41,8 @@ function toGame(row: Row, userId: string): TicTacToeGame {
     board: row.board.split(""),
     turn: row.turn,
     mySymbol: row.player_x === userId ? "X" : "O",
+    isCreator: row.player_x === userId,
+    accepted: row.accepted,
     status: row.status,
   };
 }
@@ -85,6 +90,52 @@ export async function startGame(): Promise<ActionResult<null>> {
   return ok(null);
 }
 
+export async function acceptInvite(): Promise<ActionResult<null>> {
+  const session = await getSession();
+  if (!session) return fail("Sessão expirada.");
+
+  const supabase = createAdminClient();
+  const { data: row, error } = await supabase
+    .from("tictactoe_games")
+    .select("id, player_x, accepted")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error || !row) return fail("Nenhum convite pendente.");
+  if (row.player_x === session.userId) {
+    return fail("Quem criou o convite não precisa aceitar.");
+  }
+  if (row.accepted) return ok(null);
+
+  const { error: updateError } = await supabase
+    .from("tictactoe_games")
+    .update({ accepted: true })
+    .eq("id", row.id);
+
+  if (updateError) return fail(`Falha ao aceitar: ${updateError.message}`);
+  return ok(null);
+}
+
+export async function leaveGame(): Promise<ActionResult<null>> {
+  const session = await getSession();
+  if (!session) return fail("Sessão expirada.");
+
+  const supabase = createAdminClient();
+  const { data: row } = await supabase
+    .from("tictactoe_games")
+    .select("id")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!row) return ok(null);
+
+  const { error } = await supabase.from("tictactoe_games").delete().eq("id", row.id);
+  if (error) return fail(`Falha ao sair: ${error.message}`);
+  return ok(null);
+}
+
 export async function makeMove(
   index: number
 ): Promise<ActionResult<TicTacToeGame>> {
@@ -103,6 +154,7 @@ export async function makeMove(
     .maybeSingle();
 
   if (error || !row) return fail("Nenhum jogo em andamento.");
+  if (!row.accepted) return fail("Aceite o convite antes de jogar.");
   if (row.status !== "playing") return fail("Esse jogo já acabou.");
 
   const mySymbol: "X" | "O" = row.player_x === session.userId ? "X" : "O";

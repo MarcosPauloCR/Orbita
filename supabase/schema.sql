@@ -214,6 +214,10 @@ create table if not exists hangman_games (
 -- quem vai adivinhar, junto com quantidade de letras e chances restantes.
 alter table hangman_games add column if not exists theme text;
 
+-- Convite: quem cria já topa por definição; só falta a outra pessoa
+-- aceitar antes de qualquer palpite valer.
+alter table hangman_games add column if not exists accepted boolean not null default false;
+
 alter table hangman_games enable row level security;
 
 -- Sem policies para anon/authenticated: só a service role lê/grava, e a
@@ -229,6 +233,8 @@ create table if not exists tictactoe_games (
   status text not null default 'playing' check (status in ('playing', 'won_x', 'won_o', 'draw')),
   created_at timestamptz default now()
 );
+
+alter table tictactoe_games add column if not exists accepted boolean not null default false;
 
 alter table tictactoe_games enable row level security;
 
@@ -246,6 +252,8 @@ create table if not exists battleship_games (
   created_at timestamptz default now()
 );
 
+alter table battleship_games add column if not exists accepted boolean not null default false;
+
 alter table battleship_games enable row level security;
 
 -- Jogo da memória (4x4, 8 pares de símbolos temáticos de lua/espaço).
@@ -262,6 +270,8 @@ create table if not exists memory_games (
   status text not null default 'playing' check (status in ('playing', 'finished')),
   created_at timestamptz default now()
 );
+
+alter table memory_games add column if not exists accepted boolean not null default false;
 
 alter table memory_games enable row level security;
 
@@ -314,6 +324,8 @@ create table if not exists wordsearch_games (
   status text not null default 'playing' check (status in ('playing', 'finished')),
   created_at timestamptz default now()
 );
+
+alter table wordsearch_games add column if not exists accepted boolean not null default false;
 
 alter table wordsearch_games enable row level security;
 

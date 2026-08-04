@@ -27,11 +27,12 @@ type Row = {
   found_b: string;
   finished_at_a: string | null;
   finished_at_b: string | null;
+  accepted: boolean;
   status: Status;
 };
 
 const COLUMNS =
-  "id, mode, theme, difficulty, grid_size, grid, words, player_a, player_b, found_a, found_b, finished_at_a, finished_at_b, status";
+  "id, mode, theme, difficulty, grid_size, grid, words, player_a, player_b, found_a, found_b, finished_at_a, finished_at_b, accepted, status";
 
 export type WordSearchGame = {
   id: string;
@@ -42,6 +43,8 @@ export type WordSearchGame = {
   gridRows: string[];
   words: string[];
   mySide: "a" | "b";
+  isCreator: boolean;
+  accepted: boolean;
   status: Status;
   myFound: string[];
   otherFoundCount: number;
@@ -72,6 +75,8 @@ function toGame(row: Row, userId: string): WordSearchGame {
       gridRows,
       words,
       mySide,
+      isCreator: row.player_a === userId,
+      accepted: row.accepted,
       status: row.status,
       myFound: found,
       otherFoundCount: found.length,
@@ -94,6 +99,8 @@ function toGame(row: Row, userId: string): WordSearchGame {
     gridRows,
     words,
     mySide,
+    isCreator: row.player_a === userId,
+    accepted: row.accepted,
     status: row.status,
     myFound,
     otherFoundCount: otherFound.length,
@@ -160,6 +167,52 @@ export async function startGame(
   return ok(null);
 }
 
+export async function acceptInvite(): Promise<ActionResult<null>> {
+  const session = await getSession();
+  if (!session) return fail("Sessão expirada.");
+
+  const supabase = createAdminClient();
+  const { data: row, error } = await supabase
+    .from("wordsearch_games")
+    .select("id, player_a, accepted")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error || !row) return fail("Nenhum convite pendente.");
+  if (row.player_a === session.userId) {
+    return fail("Quem criou o convite não precisa aceitar.");
+  }
+  if (row.accepted) return ok(null);
+
+  const { error: updateError } = await supabase
+    .from("wordsearch_games")
+    .update({ accepted: true })
+    .eq("id", row.id);
+
+  if (updateError) return fail(`Falha ao aceitar: ${updateError.message}`);
+  return ok(null);
+}
+
+export async function leaveGame(): Promise<ActionResult<null>> {
+  const session = await getSession();
+  if (!session) return fail("Sessão expirada.");
+
+  const supabase = createAdminClient();
+  const { data: row } = await supabase
+    .from("wordsearch_games")
+    .select("id")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!row) return ok(null);
+
+  const { error } = await supabase.from("wordsearch_games").delete().eq("id", row.id);
+  if (error) return fail(`Falha ao sair: ${error.message}`);
+  return ok(null);
+}
+
 export async function foundWord(
   word: string
 ): Promise<ActionResult<WordSearchGame>> {
@@ -177,6 +230,7 @@ export async function foundWord(
     .maybeSingle();
 
   if (error || !row) return fail("Nenhum jogo em andamento.");
+  if (!row.accepted) return fail("Aceite o convite antes de jogar.");
   if (row.status !== "playing") return fail("Esse jogo já acabou.");
 
   const words = parseCsv(row.words);

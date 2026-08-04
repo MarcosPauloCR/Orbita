@@ -3,9 +3,25 @@
 import { useEffect, useRef, useState } from "react";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
-import { createGame, guessLetter, getGame, type HangmanGame } from "./actions";
+import {
+  createGame,
+  guessLetter,
+  acceptInvite,
+  leaveGame,
+  getGame,
+  type HangmanGame,
+} from "./actions";
 import { useDeviceMode } from "../GameShell";
 import { GameRules } from "../GameRules";
+import { InviteGate } from "../InviteGate";
+import { LeaveButton } from "../LeaveButton";
+
+const RULES = [
+  "Quem cria pensa numa palavra secreta (e pode escolher um tema).",
+  "O outro tenta adivinhar uma letra por vez.",
+  "Cada letra errada custa uma chance — a lua vai enchendo a cada erro.",
+  "Descobrir a palavra antes das chances acabarem = vitória.",
+];
 
 const MOON_STAGES = ["🌑", "🌒", "🌓", "🌔", "🌕", "🌖", "🌗"];
 const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
@@ -29,6 +45,8 @@ export function JogoView({
   const [themeDraft, setThemeDraft] = useState("");
   const [isCreating, setIsCreating] = useState(false);
   const [isGuessing, setIsGuessing] = useState<string | null>(null);
+  const [isAccepting, setIsAccepting] = useState(false);
+  const [isLeaving, setIsLeaving] = useState(false);
   const channelRef = useRef<RealtimeChannel | null>(null);
 
   useEffect(() => {
@@ -70,6 +88,36 @@ export function JogoView({
     }
   }
 
+  async function handleAccept() {
+    setIsAccepting(true);
+    try {
+      const result = await acceptInvite();
+      if (!result.ok) {
+        alert(result.error);
+        return;
+      }
+      setGame(await getGame());
+      notifyOther();
+    } finally {
+      setIsAccepting(false);
+    }
+  }
+
+  async function handleLeave() {
+    setIsLeaving(true);
+    try {
+      const result = await leaveGame();
+      if (!result.ok) {
+        alert(result.error);
+        return;
+      }
+      setGame(null);
+      notifyOther();
+    } finally {
+      setIsLeaving(false);
+    }
+  }
+
   async function handleGuess(letter: string) {
     setIsGuessing(letter);
     try {
@@ -86,6 +134,8 @@ export function JogoView({
   }
 
   const showCreateForm = !game || game.status !== "playing";
+  const showInviteGate = !!game && game.status === "playing" && !game.accepted;
+  const showBoard = !!game && game.status === "playing" && game.accepted;
 
   return (
     <div className="flex w-full min-h-0 flex-1 flex-col gap-6 overflow-y-auto pb-4">
@@ -103,15 +153,19 @@ export function JogoView({
         </div>
       )}
 
-      {showCreateForm && (
-        <GameRules
-          items={[
-            "Quem cria pensa numa palavra secreta (e pode escolher um tema).",
-            "O outro tenta adivinhar uma letra por vez.",
-            "Cada letra errada custa uma chance — a lua vai enchendo a cada erro.",
-            "Descobrir a palavra antes das chances acabarem = vitória.",
-          ]}
-        />
+      {showCreateForm && <GameRules items={RULES} />}
+
+      {showInviteGate && (
+        <>
+          <InviteGate
+            isCreator={game.isCreator}
+            otherUserName={otherUserName}
+            rules={RULES}
+            onAccept={handleAccept}
+            busy={isAccepting}
+          />
+          <LeaveButton onLeave={handleLeave} busy={isLeaving} />
+        </>
       )}
 
       {showCreateForm && (
@@ -144,8 +198,9 @@ export function JogoView({
         </form>
       )}
 
-      {game && game.status === "playing" && (
+      {showBoard && (
         <div className="flex flex-col items-center gap-4">
+          <LeaveButton onLeave={handleLeave} busy={isLeaving} />
           <p className="text-4xl">
             {MOON_STAGES[Math.min(game.wrongGuesses, MOON_STAGES.length - 1)]}
           </p>

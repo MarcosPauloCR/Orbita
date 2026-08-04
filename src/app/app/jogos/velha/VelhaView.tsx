@@ -3,11 +3,25 @@
 import { useEffect, useRef, useState } from "react";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
-import { startGame, makeMove, getGame, type TicTacToeGame } from "./actions";
+import {
+  startGame,
+  makeMove,
+  acceptInvite,
+  leaveGame,
+  getGame,
+  type TicTacToeGame,
+} from "./actions";
 import { useDeviceMode } from "../GameShell";
 import { GameRules } from "../GameRules";
+import { InviteGate } from "../InviteGate";
+import { LeaveButton } from "../LeaveButton";
 
 const CHANNEL = "orbita-velha";
+const RULES = [
+  "Vocês se revezam marcando X ou O no tabuleiro 3x3.",
+  "Quem formar uma linha completa primeiro (na horizontal, vertical ou diagonal) vence.",
+  "Se o tabuleiro encher sem ninguém formar linha, é empate.",
+];
 
 function statusLabel(game: TicTacToeGame, otherUserName: string): string {
   if (game.status === "draw") return "empate!";
@@ -26,6 +40,8 @@ export function VelhaView({ otherUserName }: { otherUserName: string }) {
   const [loaded, setLoaded] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
   const [isMoving, setIsMoving] = useState<number | null>(null);
+  const [isAccepting, setIsAccepting] = useState(false);
+  const [isLeaving, setIsLeaving] = useState(false);
   const channelRef = useRef<RealtimeChannel | null>(null);
 
   useEffect(() => {
@@ -67,6 +83,36 @@ export function VelhaView({ otherUserName }: { otherUserName: string }) {
     }
   }
 
+  async function handleAccept() {
+    setIsAccepting(true);
+    try {
+      const result = await acceptInvite();
+      if (!result.ok) {
+        alert(result.error);
+        return;
+      }
+      setGame(await getGame());
+      notifyOther();
+    } finally {
+      setIsAccepting(false);
+    }
+  }
+
+  async function handleLeave() {
+    setIsLeaving(true);
+    try {
+      const result = await leaveGame();
+      if (!result.ok) {
+        alert(result.error);
+        return;
+      }
+      setGame(null);
+      notifyOther();
+    } finally {
+      setIsLeaving(false);
+    }
+  }
+
   async function handleMove(index: number) {
     setIsMoving(index);
     try {
@@ -85,6 +131,8 @@ export function VelhaView({ otherUserName }: { otherUserName: string }) {
   if (!loaded) return null;
 
   const showStart = !game || game.status !== "playing";
+  const showInviteGate = !!game && game.status === "playing" && !game.accepted;
+  const showBoard = !!game && game.status === "playing" && game.accepted;
 
   return (
     <div className="flex w-full flex-col items-center gap-4">
@@ -94,14 +142,19 @@ export function VelhaView({ otherUserName }: { otherUserName: string }) {
         </p>
       )}
 
-      {showStart && (
-        <GameRules
-          items={[
-            "Vocês se revezam marcando X ou O no tabuleiro 3x3.",
-            "Quem formar uma linha completa primeiro (na horizontal, vertical ou diagonal) vence.",
-            "Se o tabuleiro encher sem ninguém formar linha, é empate.",
-          ]}
-        />
+      {showStart && <GameRules items={RULES} />}
+
+      {showInviteGate && (
+        <>
+          <InviteGate
+            isCreator={game.isCreator}
+            otherUserName={otherUserName}
+            rules={RULES}
+            onAccept={handleAccept}
+            busy={isAccepting}
+          />
+          <LeaveButton onLeave={handleLeave} busy={isLeaving} />
+        </>
       )}
 
       {showStart && (
@@ -115,8 +168,9 @@ export function VelhaView({ otherUserName }: { otherUserName: string }) {
         </button>
       )}
 
-      {game && game.status === "playing" && (
+      {showBoard && (
         <>
+          <LeaveButton onLeave={handleLeave} busy={isLeaving} />
           <p className="text-xs text-ink-muted">{statusLabel(game, otherUserName)}</p>
           <div className="grid grid-cols-3 gap-2">
             {game.board.map((cell, i) => (

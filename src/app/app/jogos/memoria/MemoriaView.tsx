@@ -3,17 +3,34 @@
 import { useEffect, useRef, useState } from "react";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
-import { startGame, flipCard, getGame, type MemoryGame } from "./actions";
+import {
+  startGame,
+  flipCard,
+  acceptInvite,
+  leaveGame,
+  getGame,
+  type MemoryGame,
+} from "./actions";
 import { useDeviceMode } from "../GameShell";
 import { GameRules } from "../GameRules";
+import { InviteGate } from "../InviteGate";
+import { LeaveButton } from "../LeaveButton";
 
 const CHANNEL = "orbita-memoria";
+const RULES = [
+  "A grade tem pares de símbolos escondidos.",
+  "Na sua vez, vire duas cartas. Se formarem um par, você marca ponto e joga de novo.",
+  "Se não formarem par, elas ficam visíveis até a próxima jogada e a vez passa.",
+  "Quem tiver mais pares quando a grade acabar, vence.",
+];
 
 export function MemoriaView({ otherUserName }: { otherUserName: string }) {
   const isDesktop = useDeviceMode() === "desktop";
   const [game, setGame] = useState<MemoryGame | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [isAccepting, setIsAccepting] = useState(false);
+  const [isLeaving, setIsLeaving] = useState(false);
   const channelRef = useRef<RealtimeChannel | null>(null);
 
   useEffect(() => {
@@ -55,6 +72,36 @@ export function MemoriaView({ otherUserName }: { otherUserName: string }) {
     }
   }
 
+  async function handleAccept() {
+    setIsAccepting(true);
+    try {
+      const result = await acceptInvite();
+      if (!result.ok) {
+        alert(result.error);
+        return;
+      }
+      setGame(await getGame());
+      notifyOther();
+    } finally {
+      setIsAccepting(false);
+    }
+  }
+
+  async function handleLeave() {
+    setIsLeaving(true);
+    try {
+      const result = await leaveGame();
+      if (!result.ok) {
+        alert(result.error);
+        return;
+      }
+      setGame(null);
+      notifyOther();
+    } finally {
+      setIsLeaving(false);
+    }
+  }
+
   async function handleFlip(index: number) {
     setBusy(true);
     try {
@@ -89,14 +136,7 @@ export function MemoriaView({ otherUserName }: { otherUserName: string }) {
             você {game.scoreMine} × {game.scoreOther} {otherUserName}
           </p>
         )}
-        <GameRules
-          items={[
-            "A grade tem pares de símbolos escondidos.",
-            "Na sua vez, vire duas cartas. Se formarem um par, você marca ponto e joga de novo.",
-            "Se não formarem par, elas ficam visíveis até a próxima jogada e a vez passa.",
-            "Quem tiver mais pares quando a grade acabar, vence.",
-          ]}
-        />
+        <GameRules items={RULES} />
         <button
           type="button"
           onClick={handleStart}
@@ -109,8 +149,24 @@ export function MemoriaView({ otherUserName }: { otherUserName: string }) {
     );
   }
 
+  if (!game.accepted) {
+    return (
+      <div className="flex w-full flex-col items-center gap-4">
+        <InviteGate
+          isCreator={game.isCreator}
+          otherUserName={otherUserName}
+          rules={RULES}
+          onAccept={handleAccept}
+          busy={isAccepting}
+        />
+        <LeaveButton onLeave={handleLeave} busy={isLeaving} />
+      </div>
+    );
+  }
+
   return (
     <div className="flex w-full flex-col items-center gap-4">
+      <LeaveButton onLeave={handleLeave} busy={isLeaving} />
       <div className="flex items-center gap-4 text-xs text-ink-muted">
         <span>você {game.scoreMine} × {game.scoreOther} {otherUserName}</span>
       </div>

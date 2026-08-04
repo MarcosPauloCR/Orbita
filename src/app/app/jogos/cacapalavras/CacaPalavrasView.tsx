@@ -4,12 +4,27 @@ import { useEffect, useRef, useState } from "react";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import { WORDSEARCH_THEMES, type Difficulty } from "@/lib/wordsearch";
-import { startGame, foundWord, getGame, type WordSearchGame } from "./actions";
+import {
+  startGame,
+  foundWord,
+  acceptInvite,
+  leaveGame,
+  getGame,
+  type WordSearchGame,
+} from "./actions";
 import { useDeviceMode } from "../GameShell";
 import { GameRules } from "../GameRules";
+import { InviteGate } from "../InviteGate";
+import { LeaveButton } from "../LeaveButton";
 
 const CHANNEL = "orbita-cacapalavras";
 const THEMES = Object.keys(WORDSEARCH_THEMES);
+const RULES = [
+  "Escolham modo, tema e dificuldade antes de começar.",
+  "Pra marcar uma palavra, toque na primeira letra e depois na última — precisa formar uma reta (horizontal, vertical ou diagonal, conforme a dificuldade).",
+  "Cooperativo: os dois veem a mesma grade, quem achar marca pra ambos.",
+  "Corrida: cada um joga na própria cópia; no final comparam quem encontrou tudo primeiro.",
+];
 
 export function CacaPalavrasView({ otherUserName }: { otherUserName: string }) {
   const deviceMode = useDeviceMode();
@@ -20,6 +35,8 @@ export function CacaPalavrasView({ otherUserName }: { otherUserName: string }) {
   const [theme, setTheme] = useState(THEMES[0]);
   const [difficulty, setDifficulty] = useState<Difficulty>("easy");
   const [busy, setBusy] = useState(false);
+  const [isAccepting, setIsAccepting] = useState(false);
+  const [isLeaving, setIsLeaving] = useState(false);
   const [selStart, setSelStart] = useState<number | null>(null);
   const [selCells, setSelCells] = useState<number[]>([]);
   const channelRef = useRef<RealtimeChannel | null>(null);
@@ -62,6 +79,36 @@ export function CacaPalavrasView({ otherUserName }: { otherUserName: string }) {
       notifyOther();
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function handleAccept() {
+    setIsAccepting(true);
+    try {
+      const result = await acceptInvite();
+      if (!result.ok) {
+        alert(result.error);
+        return;
+      }
+      await refresh();
+      notifyOther();
+    } finally {
+      setIsAccepting(false);
+    }
+  }
+
+  async function handleLeave() {
+    setIsLeaving(true);
+    try {
+      const result = await leaveGame();
+      if (!result.ok) {
+        alert(result.error);
+        return;
+      }
+      setGame(null);
+      notifyOther();
+    } finally {
+      setIsLeaving(false);
     }
   }
 
@@ -130,6 +177,8 @@ export function CacaPalavrasView({ otherUserName }: { otherUserName: string }) {
   if (!loaded) return null;
 
   const showStart = !game || game.status === "finished";
+  const showInviteGate = !!game && game.status === "playing" && !game.accepted;
+  const showBoard = !!game && game.status === "playing" && game.accepted;
 
   return (
     <div className="flex w-full flex-col items-center gap-4">
@@ -147,15 +196,19 @@ export function CacaPalavrasView({ otherUserName }: { otherUserName: string }) {
         </div>
       )}
 
-      {showStart && (
-        <GameRules
-          items={[
-            "Escolham modo, tema e dificuldade antes de começar.",
-            "Pra marcar uma palavra, toque na primeira letra e depois na última — precisa formar uma reta (horizontal, vertical ou diagonal, conforme a dificuldade).",
-            "Cooperativo: os dois veem a mesma grade, quem achar marca pra ambos.",
-            "Corrida: cada um joga na própria cópia; no final comparam quem encontrou tudo primeiro.",
-          ]}
-        />
+      {showStart && <GameRules items={RULES} />}
+
+      {showInviteGate && (
+        <>
+          <InviteGate
+            isCreator={game.isCreator}
+            otherUserName={otherUserName}
+            rules={RULES}
+            onAccept={handleAccept}
+            busy={isAccepting}
+          />
+          <LeaveButton onLeave={handleLeave} busy={isLeaving} />
+        </>
       )}
 
       {showStart && (
@@ -228,8 +281,9 @@ export function CacaPalavrasView({ otherUserName }: { otherUserName: string }) {
         </form>
       )}
 
-      {game && game.status === "playing" && (
+      {showBoard && (
         <div className="flex flex-col items-center gap-3">
+          <LeaveButton onLeave={handleLeave} busy={isLeaving} />
           <p className={isDesktop ? "text-sm text-ink-muted" : "text-xs text-ink-muted"}>
             {game.mode === "coop"
               ? `${game.myFound.length} / ${game.words.length} encontradas`

@@ -20,10 +20,12 @@ type Row = {
   shots_a: string;
   shots_b: string;
   turn: Side;
+  accepted: boolean;
   status: Status;
 };
 
-const COLUMNS = "id, player_a, player_b, ships_a, ships_b, shots_a, shots_b, turn, status";
+const COLUMNS =
+  "id, player_a, player_b, ships_a, ships_b, shots_a, shots_b, turn, accepted, status";
 
 function parseCsv(value: string | null): number[] {
   if (!value) return [];
@@ -39,6 +41,8 @@ export type BattleshipGame = {
   id: string;
   status: Status;
   mySide: Side;
+  isCreator: boolean;
+  accepted: boolean;
   turn: Side;
   myShipsPlaced: boolean;
   opponentShipsPlaced: boolean;
@@ -68,6 +72,8 @@ function toGame(row: Row, userId: string): BattleshipGame {
     id: row.id,
     status: row.status,
     mySide,
+    isCreator: row.player_a === userId,
+    accepted: row.accepted,
     turn: row.turn,
     myShipsPlaced: myShips.length === SHIP_COUNT,
     opponentShipsPlaced: opponentShips.length === SHIP_COUNT,
@@ -119,6 +125,52 @@ export async function startGame(): Promise<ActionResult<null>> {
   return ok(null);
 }
 
+export async function acceptInvite(): Promise<ActionResult<null>> {
+  const session = await getSession();
+  if (!session) return fail("Sessão expirada.");
+
+  const supabase = createAdminClient();
+  const { data: row, error } = await supabase
+    .from("battleship_games")
+    .select("id, player_a, accepted")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error || !row) return fail("Nenhum convite pendente.");
+  if (row.player_a === session.userId) {
+    return fail("Quem criou o convite não precisa aceitar.");
+  }
+  if (row.accepted) return ok(null);
+
+  const { error: updateError } = await supabase
+    .from("battleship_games")
+    .update({ accepted: true })
+    .eq("id", row.id);
+
+  if (updateError) return fail(`Falha ao aceitar: ${updateError.message}`);
+  return ok(null);
+}
+
+export async function leaveGame(): Promise<ActionResult<null>> {
+  const session = await getSession();
+  if (!session) return fail("Sessão expirada.");
+
+  const supabase = createAdminClient();
+  const { data: row } = await supabase
+    .from("battleship_games")
+    .select("id")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!row) return ok(null);
+
+  const { error } = await supabase.from("battleship_games").delete().eq("id", row.id);
+  if (error) return fail(`Falha ao sair: ${error.message}`);
+  return ok(null);
+}
+
 export async function placeShips(cells: number[]): Promise<ActionResult<null>> {
   const session = await getSession();
   if (!session) return fail("Sessão expirada.");
@@ -139,6 +191,7 @@ export async function placeShips(cells: number[]): Promise<ActionResult<null>> {
     .maybeSingle();
 
   if (error || !row) return fail("Nenhum jogo em andamento.");
+  if (!row.accepted) return fail("Aceite o convite antes de posicionar os navios.");
   if (row.status !== "setup") return fail("Os navios já foram posicionados.");
 
   const mySide: Side = row.player_a === session.userId ? "a" : "b";

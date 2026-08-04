@@ -19,6 +19,7 @@ export type HangmanGame = {
   id: string;
   createdBy: string;
   isCreator: boolean;
+  accepted: boolean;
   theme: string | null;
   maskedWord: string;
   guessedLetters: string[];
@@ -33,6 +34,7 @@ type GameRow = {
   created_by: string;
   word: string;
   theme: string | null;
+  accepted: boolean;
   guessed_letters: string;
   wrong_guesses: number;
   max_wrong_guesses: number;
@@ -40,7 +42,7 @@ type GameRow = {
 };
 
 const GAME_COLUMNS =
-  "id, created_by, word, theme, guessed_letters, wrong_guesses, max_wrong_guesses, status";
+  "id, created_by, word, theme, accepted, guessed_letters, wrong_guesses, max_wrong_guesses, status";
 
 function toGame(row: GameRow, currentUserId: string): HangmanGame {
   const isCreator = row.created_by === currentUserId;
@@ -50,6 +52,7 @@ function toGame(row: GameRow, currentUserId: string): HangmanGame {
     id: row.id,
     createdBy: row.created_by,
     isCreator,
+    accepted: row.accepted,
     theme: row.theme,
     maskedWord: maskWord(row.word, row.guessed_letters),
     guessedLetters: row.guessed_letters ? row.guessed_letters.split("") : [],
@@ -109,6 +112,52 @@ export async function createGame(
   return ok(null);
 }
 
+export async function acceptInvite(): Promise<ActionResult<null>> {
+  const session = await getSession();
+  if (!session) return fail("Sessão expirada.");
+
+  const supabase = createAdminClient();
+  const { data: row, error } = await supabase
+    .from("hangman_games")
+    .select("id, created_by, accepted")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error || !row) return fail("Nenhum convite pendente.");
+  if (row.created_by === session.userId) {
+    return fail("Quem criou o convite não precisa aceitar.");
+  }
+  if (row.accepted) return ok(null);
+
+  const { error: updateError } = await supabase
+    .from("hangman_games")
+    .update({ accepted: true })
+    .eq("id", row.id);
+
+  if (updateError) return fail(`Falha ao aceitar: ${updateError.message}`);
+  return ok(null);
+}
+
+export async function leaveGame(): Promise<ActionResult<null>> {
+  const session = await getSession();
+  if (!session) return fail("Sessão expirada.");
+
+  const supabase = createAdminClient();
+  const { data: row } = await supabase
+    .from("hangman_games")
+    .select("id, created_by")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!row) return ok(null);
+
+  const { error } = await supabase.from("hangman_games").delete().eq("id", row.id);
+  if (error) return fail(`Falha ao sair: ${error.message}`);
+  return ok(null);
+}
+
 export async function guessLetter(
   letter: string
 ): Promise<ActionResult<HangmanGame>> {
@@ -132,6 +181,7 @@ export async function guessLetter(
   if (row.created_by === session.userId) {
     return fail("Quem cria a palavra não pode tentar adivinhar.");
   }
+  if (!row.accepted) return fail("Aceite o convite antes de jogar.");
   if (row.status !== "playing") return fail("Esse jogo já acabou.");
 
   const guessedSet = new Set(

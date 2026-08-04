@@ -20,11 +20,12 @@ type Row = {
   turn: string;
   score_a: number;
   score_b: number;
+  accepted: boolean;
   status: Status;
 };
 
 const COLUMNS =
-  "id, player_a, player_b, board, matched, flipped, turn, score_a, score_b, status";
+  "id, player_a, player_b, board, matched, flipped, turn, score_a, score_b, accepted, status";
 
 function parseCsv(value: string): number[] {
   return value
@@ -49,6 +50,8 @@ export type MemoryGame = {
   cards: MemoryCard[];
   turn: string;
   myTurn: boolean;
+  isCreator: boolean;
+  accepted: boolean;
   scoreMine: number;
   scoreOther: number;
   status: Status;
@@ -70,6 +73,8 @@ function toGame(row: Row, userId: string): MemoryGame {
     cards,
     turn: row.turn,
     myTurn: row.turn === userId,
+    isCreator: row.player_a === userId,
+    accepted: row.accepted,
     scoreMine: mySide === "a" ? row.score_a : row.score_b,
     scoreOther: mySide === "a" ? row.score_b : row.score_a,
     status: row.status,
@@ -121,6 +126,52 @@ export async function startGame(): Promise<ActionResult<null>> {
   return ok(null);
 }
 
+export async function acceptInvite(): Promise<ActionResult<null>> {
+  const session = await getSession();
+  if (!session) return fail("Sessão expirada.");
+
+  const supabase = createAdminClient();
+  const { data: row, error } = await supabase
+    .from("memory_games")
+    .select("id, player_a, accepted")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error || !row) return fail("Nenhum convite pendente.");
+  if (row.player_a === session.userId) {
+    return fail("Quem criou o convite não precisa aceitar.");
+  }
+  if (row.accepted) return ok(null);
+
+  const { error: updateError } = await supabase
+    .from("memory_games")
+    .update({ accepted: true })
+    .eq("id", row.id);
+
+  if (updateError) return fail(`Falha ao aceitar: ${updateError.message}`);
+  return ok(null);
+}
+
+export async function leaveGame(): Promise<ActionResult<null>> {
+  const session = await getSession();
+  if (!session) return fail("Sessão expirada.");
+
+  const supabase = createAdminClient();
+  const { data: row } = await supabase
+    .from("memory_games")
+    .select("id")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!row) return ok(null);
+
+  const { error } = await supabase.from("memory_games").delete().eq("id", row.id);
+  if (error) return fail(`Falha ao sair: ${error.message}`);
+  return ok(null);
+}
+
 export async function flipCard(index: number): Promise<ActionResult<MemoryGame>> {
   const session = await getSession();
   if (!session) return fail("Sessão expirada.");
@@ -137,6 +188,7 @@ export async function flipCard(index: number): Promise<ActionResult<MemoryGame>>
     .maybeSingle();
 
   if (error || !row) return fail("Nenhum jogo em andamento.");
+  if (!row.accepted) return fail("Aceite o convite antes de jogar.");
   if (row.status !== "playing") return fail("Esse jogo já acabou.");
   if (row.turn !== session.userId) return fail("Não é sua vez.");
 

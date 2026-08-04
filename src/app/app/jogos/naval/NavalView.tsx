@@ -7,14 +7,23 @@ import {
   startGame,
   placeShips,
   fireShot,
+  acceptInvite,
+  leaveGame,
   getGame,
   type BattleshipGame,
 } from "./actions";
 import { useDeviceMode } from "../GameShell";
 import { GameRules } from "../GameRules";
+import { InviteGate } from "../InviteGate";
+import { LeaveButton } from "../LeaveButton";
 
 const CHANNEL = "orbita-naval";
 const SHIP_COUNT = 3;
+const RULES = [
+  "Cada um esconde 3 navios (1 célula cada) numa grade 4x4, sem o outro ver.",
+  "Por turnos, vocês atiram em células da grade do outro tentando acertar.",
+  "🔥 marca acerto, • marca água. Quem afundar os 3 navios do outro primeiro vence.",
+];
 
 export function NavalView({ otherUserName }: { otherUserName: string }) {
   const isDesktop = useDeviceMode() === "desktop";
@@ -23,6 +32,8 @@ export function NavalView({ otherUserName }: { otherUserName: string }) {
   const [loaded, setLoaded] = useState(false);
   const [selecting, setSelecting] = useState<number[]>([]);
   const [busy, setBusy] = useState(false);
+  const [isAccepting, setIsAccepting] = useState(false);
+  const [isLeaving, setIsLeaving] = useState(false);
   const channelRef = useRef<RealtimeChannel | null>(null);
 
   useEffect(() => {
@@ -62,6 +73,36 @@ export function NavalView({ otherUserName }: { otherUserName: string }) {
       notifyOther();
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function handleAccept() {
+    setIsAccepting(true);
+    try {
+      const result = await acceptInvite();
+      if (!result.ok) {
+        alert(result.error);
+        return;
+      }
+      setGame(await getGame());
+      notifyOther();
+    } finally {
+      setIsAccepting(false);
+    }
+  }
+
+  async function handleLeave() {
+    setIsLeaving(true);
+    try {
+      const result = await leaveGame();
+      if (!result.ok) {
+        alert(result.error);
+        return;
+      }
+      setGame(null);
+      notifyOther();
+    } finally {
+      setIsLeaving(false);
     }
   }
 
@@ -115,13 +156,7 @@ export function NavalView({ otherUserName }: { otherUserName: string }) {
               : `${otherUserName} venceu`}
           </p>
         )}
-        <GameRules
-          items={[
-            "Cada um esconde 3 navios (1 célula cada) numa grade 4x4, sem o outro ver.",
-            "Por turnos, vocês atiram em células da grade do outro tentando acertar.",
-            "🔥 marca acerto, • marca água. Quem afundar os 3 navios do outro primeiro vence.",
-          ]}
-        />
+        <GameRules items={RULES} />
         <button
           type="button"
           onClick={handleStart}
@@ -134,10 +169,26 @@ export function NavalView({ otherUserName }: { otherUserName: string }) {
     );
   }
 
+  if (!game.accepted) {
+    return (
+      <div className="flex w-full flex-col items-center gap-4">
+        <InviteGate
+          isCreator={game.isCreator}
+          otherUserName={otherUserName}
+          rules={RULES}
+          onAccept={handleAccept}
+          busy={isAccepting}
+        />
+        <LeaveButton onLeave={handleLeave} busy={isLeaving} />
+      </div>
+    );
+  }
+
   if (game.status === "setup") {
     if (!game.myShipsPlaced) {
       return (
         <div className="flex w-full flex-col items-center gap-3">
+          <LeaveButton onLeave={handleLeave} busy={isLeaving} />
           <p className="text-xs text-ink-muted">
             escolha {SHIP_COUNT} posições pros seus navios ({selecting.length}/{SHIP_COUNT})
           </p>
@@ -167,14 +218,18 @@ export function NavalView({ otherUserName }: { otherUserName: string }) {
       );
     }
     return (
-      <p className="text-xs text-ink-muted">
-        aguardando {otherUserName} posicionar os navios…
-      </p>
+      <div className="flex w-full flex-col items-center gap-3">
+        <LeaveButton onLeave={handleLeave} busy={isLeaving} />
+        <p className="text-xs text-ink-muted">
+          aguardando {otherUserName} posicionar os navios…
+        </p>
+      </div>
     );
   }
 
   return (
     <div className="flex w-full flex-col items-center gap-6">
+      <LeaveButton onLeave={handleLeave} busy={isLeaving} />
       <p className="text-xs text-ink-muted">
         {game.turn === game.mySide ? "sua vez de atirar" : `vez de ${otherUserName}`}
       </p>
