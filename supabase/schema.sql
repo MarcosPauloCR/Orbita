@@ -210,6 +210,10 @@ create table if not exists hangman_games (
   finished_at timestamptz
 );
 
+-- Tema escolhido por quem cria (ex: "filmes", "comida") — aparece pra
+-- quem vai adivinhar, junto com quantidade de letras e chances restantes.
+alter table hangman_games add column if not exists theme text;
+
 alter table hangman_games enable row level security;
 
 -- Sem policies para anon/authenticated: só a service role lê/grava, e a

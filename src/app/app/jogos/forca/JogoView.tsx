@@ -8,6 +8,11 @@ import { createGame, guessLetter, getGame, type HangmanGame } from "./actions";
 const MOON_STAGES = ["🌑", "🌒", "🌓", "🌔", "🌕", "🌖", "🌗"];
 const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 const CHANNEL = "orbita-hangman";
+const LETTER_RE = /[A-ZÀ-Ÿ_]/i;
+
+function countLetters(maskedWord: string): number {
+  return maskedWord.split("").filter((ch) => LETTER_RE.test(ch)).length;
+}
 
 export function JogoView({
   otherUserName,
@@ -18,6 +23,7 @@ export function JogoView({
 }) {
   const [game, setGame] = useState<HangmanGame | null>(initialGame);
   const [wordDraft, setWordDraft] = useState("");
+  const [themeDraft, setThemeDraft] = useState("");
   const [isCreating, setIsCreating] = useState(false);
   const [isGuessing, setIsGuessing] = useState<string | null>(null);
   const channelRef = useRef<RealtimeChannel | null>(null);
@@ -47,12 +53,13 @@ export function JogoView({
 
     setIsCreating(true);
     try {
-      const result = await createGame(wordDraft);
+      const result = await createGame(wordDraft, themeDraft);
       if (!result.ok) {
         alert(result.error);
         return;
       }
       setWordDraft("");
+      setThemeDraft("");
       setGame(await getGame());
       notifyOther();
     } finally {
@@ -87,6 +94,9 @@ export function JogoView({
           <p className="mt-1 text-sm text-ink-muted">
             a palavra era <span className="text-ink">{game.word}</span>
           </p>
+          {game.theme && (
+            <p className="text-[10px] text-ink-muted">tema: {game.theme}</p>
+          )}
         </div>
       )}
 
@@ -99,6 +109,12 @@ export function JogoView({
             value={wordDraft}
             onChange={(e) => setWordDraft(e.target.value)}
             placeholder="sua palavra secreta (sem acentos, se puder)"
+            className="rounded-xl border border-hairline bg-surface px-3 py-2 text-sm text-ink placeholder-ink-muted outline-none focus:border-ink-muted"
+          />
+          <input
+            value={themeDraft}
+            onChange={(e) => setThemeDraft(e.target.value)}
+            placeholder="tema (opcional) — ex: filmes, comida, países..."
             className="rounded-xl border border-hairline bg-surface px-3 py-2 text-sm text-ink placeholder-ink-muted outline-none focus:border-ink-muted"
           />
           <button
@@ -119,9 +135,21 @@ export function JogoView({
           <p className="text-4xl">
             {MOON_STAGES[Math.min(game.wrongGuesses, MOON_STAGES.length - 1)]}
           </p>
-          <p className="text-[10px] text-ink-muted">
-            {game.wrongGuesses} / {game.maxWrongGuesses} erros
-          </p>
+
+          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[10px] text-ink-muted">
+            <span>
+              tema: <span className="text-ink">{game.theme ?? "livre"}</span>
+            </span>
+            <span>
+              letras: <span className="text-ink">{countLetters(game.maskedWord)}</span>
+            </span>
+            <span>
+              chances restantes:{" "}
+              <span className="text-ink">
+                {game.maxWrongGuesses - game.wrongGuesses}
+              </span>
+            </span>
+          </div>
 
           <p className="break-all text-center font-mono text-2xl tracking-widest text-ink">
             {game.maskedWord}

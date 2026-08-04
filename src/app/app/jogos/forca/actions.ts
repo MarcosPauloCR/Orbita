@@ -19,6 +19,7 @@ export type HangmanGame = {
   id: string;
   createdBy: string;
   isCreator: boolean;
+  theme: string | null;
   maskedWord: string;
   guessedLetters: string[];
   wrongGuesses: number;
@@ -31,11 +32,15 @@ type GameRow = {
   id: string;
   created_by: string;
   word: string;
+  theme: string | null;
   guessed_letters: string;
   wrong_guesses: number;
   max_wrong_guesses: number;
   status: "playing" | "won" | "lost";
 };
+
+const GAME_COLUMNS =
+  "id, created_by, word, theme, guessed_letters, wrong_guesses, max_wrong_guesses, status";
 
 function toGame(row: GameRow, currentUserId: string): HangmanGame {
   const isCreator = row.created_by === currentUserId;
@@ -45,6 +50,7 @@ function toGame(row: GameRow, currentUserId: string): HangmanGame {
     id: row.id,
     createdBy: row.created_by,
     isCreator,
+    theme: row.theme,
     maskedWord: maskWord(row.word, row.guessed_letters),
     guessedLetters: row.guessed_letters ? row.guessed_letters.split("") : [],
     wrongGuesses: row.wrong_guesses,
@@ -61,7 +67,7 @@ export async function getGame(): Promise<HangmanGame | null> {
   const supabase = createAdminClient();
   const { data: row } = await supabase
     .from("hangman_games")
-    .select("id, created_by, word, guessed_letters, wrong_guesses, max_wrong_guesses, status")
+    .select(GAME_COLUMNS)
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -70,7 +76,10 @@ export async function getGame(): Promise<HangmanGame | null> {
   return toGame(row as GameRow, session.userId);
 }
 
-export async function createGame(word: string): Promise<ActionResult<null>> {
+export async function createGame(
+  word: string,
+  theme: string
+): Promise<ActionResult<null>> {
   const session = await getSession();
   if (!session) return fail("Sessão expirada.");
 
@@ -80,6 +89,8 @@ export async function createGame(word: string): Promise<ActionResult<null>> {
   if (!/^[A-ZÀ-Ÿ ]+$/i.test(trimmed)) {
     return fail("Use só letras e espaços (evite números e símbolos).");
   }
+
+  const trimmedTheme = theme.trim().slice(0, 40) || null;
 
   const supabase = createAdminClient();
   const { data: active } = await supabase
@@ -92,7 +103,7 @@ export async function createGame(word: string): Promise<ActionResult<null>> {
 
   const { error } = await supabase
     .from("hangman_games")
-    .insert({ created_by: session.userId, word: trimmed });
+    .insert({ created_by: session.userId, word: trimmed, theme: trimmedTheme });
 
   if (error) return fail(`Falha ao criar jogo: ${error.message}`);
   return ok(null);
@@ -112,7 +123,7 @@ export async function guessLetter(
   const supabase = createAdminClient();
   const { data: row, error } = await supabase
     .from("hangman_games")
-    .select("id, created_by, word, guessed_letters, wrong_guesses, max_wrong_guesses, status")
+    .select(GAME_COLUMNS)
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
