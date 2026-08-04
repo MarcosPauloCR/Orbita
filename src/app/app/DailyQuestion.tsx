@@ -1,12 +1,20 @@
 "use client";
 
 import { useState } from "react";
-import { submitDailyAnswer, type DailyAnswerState } from "./actions";
+import {
+  submitDailyAnswer,
+  type DailyAnswerState,
+  type QuestionCategory,
+} from "./actions";
 
 export function DailyQuestion({
+  title,
+  category,
   otherUserName,
   initial,
 }: {
+  title: string;
+  category: QuestionCategory;
   otherUserName: string;
   initial: DailyAnswerState;
 }) {
@@ -21,7 +29,7 @@ export function DailyQuestion({
 
     setIsSaving(true);
     try {
-      const result = await submitDailyAnswer(trimmed);
+      const result = await submitDailyAnswer(trimmed, category);
       if (!result.ok) {
         alert(result.error);
         return;
@@ -35,7 +43,7 @@ export function DailyQuestion({
   return (
     <div className="w-full">
       <p className="mb-2 text-[10px] uppercase tracking-wide text-ink-muted">
-        pergunta do dia
+        {title}
       </p>
       <div className="rounded-2xl border border-hairline bg-surface p-4">
         <p className="text-sm text-ink">{state.question}</p>

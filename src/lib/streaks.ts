@@ -4,8 +4,35 @@ export type SignalRow = {
   type?: "normal" | "sos";
 };
 
-function toUtcDateKey(iso: string): string {
+export function toUtcDateKey(iso: string): string {
   return new Date(iso).toISOString().slice(0, 10);
+}
+
+/** Mapa data -> conjunto de usuários, genérico pra qualquer tabela com
+ * from_user + uma data (checkins, daily_answers...). */
+export function groupRowsByUtcDate<T>(
+  rows: T[],
+  getDateField: (row: T) => string,
+  getUser: (row: T) => string
+): Map<string, Set<string>> {
+  const byDate = new Map<string, Set<string>>();
+  for (const row of rows) {
+    const key = getDateField(row).slice(0, 10);
+    if (!byDate.has(key)) byDate.set(key, new Set());
+    byDate.get(key)!.add(getUser(row));
+  }
+  return byDate;
+}
+
+export function mutualDatesFrom(
+  byDate: Map<string, Set<string>>,
+  userIds: [string, string]
+): Set<string> {
+  const result = new Set<string>();
+  byDate.forEach((users, date) => {
+    if (userIds.every((u) => users.has(u))) result.add(date);
+  });
+  return result;
 }
 
 /** Mapa data -> conjunto de usuários que mandaram sinal normal naquele dia
@@ -53,6 +80,46 @@ export function computeMutualStreak(
   }
 
   return streak;
+}
+
+/** Maior sequência já alcançada na história toda (não só a atual, que
+ * conta a partir de hoje/ontem pra trás). Usado pro selo de recorde. */
+export function computeLongestStreak(
+  signals: SignalRow[],
+  userIds: [string, string]
+): number {
+  const byDate = groupSignalsByDay(signals);
+  const mutualDates = mutualDatesFrom(byDate, userIds);
+  const sortedKeys = Array.from(mutualDates).sort();
+
+  let longest = 0;
+  let current = 0;
+  let prevTime: number | null = null;
+
+  for (const key of sortedKeys) {
+    const time = new Date(`${key}T00:00:00Z`).getTime();
+    current = prevTime !== null && time - prevTime === 86400000 ? current + 1 : 1;
+    longest = Math.max(longest, current);
+    prevTime = time;
+  }
+
+  return longest;
+}
+
+/** Maior número de sinais normais mandados (por qualquer um dos dois) num
+ * único dia — usado pro selo de recorde do dia. */
+export function bestSignalDayCount(signals: SignalRow[]): number {
+  const totals = new Map<string, number>();
+  for (const s of signals) {
+    if (s.type === "sos") continue;
+    const key = toUtcDateKey(s.created_at);
+    totals.set(key, (totals.get(key) ?? 0) + 1);
+  }
+  let best = 0;
+  totals.forEach((count) => {
+    best = Math.max(best, count);
+  });
+  return best;
 }
 
 export const TROPHIES = [

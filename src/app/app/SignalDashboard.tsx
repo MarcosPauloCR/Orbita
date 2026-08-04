@@ -2,7 +2,14 @@
 
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { computeMutualStreak, currentTrophy, type SignalRow } from "@/lib/streaks";
+import {
+  computeMutualStreak,
+  computeLongestStreak,
+  bestSignalDayCount,
+  toUtcDateKey,
+  currentTrophy,
+  type SignalRow,
+} from "@/lib/streaks";
 import type { ActionResult } from "@/lib/action-result";
 import { ActivityCalendar } from "./ActivityCalendar";
 
@@ -57,6 +64,7 @@ export function SignalDashboard({
   otherUserName,
   userIds,
   totalCount,
+  completeDaysCount,
   initialSignals,
   sendSignalAction,
   sendSOSAction,
@@ -65,6 +73,7 @@ export function SignalDashboard({
   otherUserName: string;
   userIds: [string, string];
   totalCount: number;
+  completeDaysCount: number;
   initialSignals: SignalRow[];
   sendSignalAction: () => Promise<void>;
   sendSOSAction: () => Promise<ActionResult<null>>;
@@ -125,6 +134,28 @@ export function SignalDashboard({
   const { current, next } = useMemo(() => currentTrophy(streak), [streak]);
   const groups = useMemo(() => groupByLocalDay(signals, 5), [signals]);
 
+  const longestStreakEver = useMemo(
+    () => computeLongestStreak(signals, userIds),
+    [signals, userIds]
+  );
+  const isStreakRecord = streak > 0 && streak >= longestStreakEver;
+
+  const { isDayRecord, todayCount } = useMemo(() => {
+    const todayKey = toUtcDateKey(new Date().toISOString());
+    const bestOverall = bestSignalDayCount(signals);
+    const todayTotal = signals.filter(
+      (s) => (s.type ?? "normal") === "normal" && toUtcDateKey(s.created_at) === todayKey
+    ).length;
+    const bestExcludingToday =
+      todayTotal >= bestOverall ? bestSignalDayCount(
+        signals.filter((s) => toUtcDateKey(s.created_at) !== todayKey)
+      ) : bestOverall;
+    return {
+      todayCount: todayTotal,
+      isDayRecord: bestExcludingToday > 0 && todayTotal > bestExcludingToday,
+    };
+  }, [signals]);
+
   return (
     <div className="flex w-full flex-col items-center gap-6">
       <div className="flex flex-col items-center gap-3 pt-2">
@@ -150,7 +181,12 @@ export function SignalDashboard({
       </div>
 
       <div className="grid w-full grid-cols-2 gap-2">
-        <div className="rounded-2xl border border-hairline bg-surface p-3 text-center">
+        <div className="relative rounded-2xl border border-hairline bg-surface p-3 text-center">
+          {isStreakRecord && streak > 1 && (
+            <span className="absolute right-2 top-2 text-xs" title="seu recorde de sequência">
+              🏆
+            </span>
+          )}
           <p className="text-2xl">{current?.icon ?? "🌑"}</p>
           <p className="mt-1 text-lg font-semibold text-ink">{streak}</p>
           <p className="text-[10px] uppercase tracking-wide text-ink-muted">
@@ -165,13 +201,30 @@ export function SignalDashboard({
             </p>
           )}
         </div>
-        <div className="rounded-2xl border border-hairline bg-surface p-3 text-center">
+        <div className="relative rounded-2xl border border-hairline bg-surface p-3 text-center">
+          {isDayRecord && (
+            <span className="absolute right-2 top-2 text-xs" title="recorde de sinais no dia">
+              🏆
+            </span>
+          )}
           <p className="text-2xl">✦</p>
           <p className="mt-1 text-lg font-semibold text-ink">{total}</p>
           <p className="text-[10px] uppercase tracking-wide text-ink-muted">
             sinais no total
           </p>
+          {isDayRecord && (
+            <p className="mt-1 text-[9px] text-ink-muted">
+              melhor dia: {todayCount} hoje!
+            </p>
+          )}
         </div>
+      </div>
+
+      <div className="w-full rounded-2xl border border-hairline bg-surface p-3 text-center">
+        <p className="text-lg font-semibold text-ink">{completeDaysCount}</p>
+        <p className="text-[10px] uppercase tracking-wide text-ink-muted">
+          dias completos (sinal + humor + pergunta)
+        </p>
       </div>
 
       <ActivityCalendar signals={signals} userIds={userIds} />

@@ -61,6 +61,10 @@ create table if not exists checkins (
   created_at timestamptz default now()
 );
 
+-- Termômetro de humor: escala fina de 1 a 10 (era 1 a 5).
+alter table checkins drop constraint if exists checkins_mood_check;
+alter table checkins add constraint checkins_mood_check check (mood between 1 and 10);
+
 -- um check-in por usuário por dia
 create unique index if not exists checkins_one_per_user_per_day
   on checkins (from_user, ((created_at at time zone 'utc')::date));
@@ -136,6 +140,23 @@ create table if not exists capsules (
 -- já que hoje qualquer um dos dois pode abrir depois do prazo).
 alter table capsules add column if not exists opened_by text references users (id);
 
+-- Cápsula-relâmpago: em vez de uma data fixa, abre na próxima vez que quem
+-- vai receber ficar online. unlock_at fica null até isso acontecer — quem
+-- "dispara" a virada é a própria Server Action de listagem, rodando pro
+-- destinatário quando ele abre a aba de cápsulas.
+alter table capsules alter column unlock_at drop not null;
+alter table capsules add column if not exists unlock_on_next_online boolean not null default false;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint where conname = 'capsules_unlock_defined'
+  ) then
+    alter table capsules add constraint capsules_unlock_defined
+      check (unlock_at is not null or unlock_on_next_online);
+  end if;
+end $$;
+
 alter table capsules enable row level security;
 
 -- Sem policies para anon/authenticated: só a service role lê/grava, e as
@@ -154,9 +175,45 @@ create table if not exists daily_answers (
   unique (from_user, question_date)
 );
 
+-- Segunda trilha de pergunta ("imagina se", mais lúdica) além da reflexiva
+-- padrão — mesma mecânica, categorias diferentes, uma resposta por
+-- categoria por dia.
+alter table daily_answers add column if not exists category text not null default 'reflective';
+alter table daily_answers drop constraint if exists daily_answers_from_user_question_date_key;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint where conname = 'daily_answers_unique_per_category'
+  ) then
+    alter table daily_answers add constraint daily_answers_unique_per_category
+      unique (from_user, question_date, category);
+  end if;
+end $$;
+
 alter table daily_answers enable row level security;
 
 -- Sem policies para anon/authenticated: só a service role lê/grava.
+
+-- Jogo da forca assíncrono. A palavra fica visível só pra quem criou —
+-- quem está adivinhando só recebe a palavra mascarada, calculada na
+-- Server Action, nunca a coluna `word` direto.
+create table if not exists hangman_games (
+  id uuid default gen_random_uuid() primary key,
+  created_by text not null references users (id),
+  word text not null,
+  guessed_letters text not null default '',
+  wrong_guesses int not null default 0,
+  max_wrong_guesses int not null default 6,
+  status text not null default 'playing' check (status in ('playing', 'won', 'lost')),
+  created_at timestamptz default now(),
+  finished_at timestamptz
+);
+
+alter table hangman_games enable row level security;
+
+-- Sem policies para anon/authenticated: só a service role lê/grava, e a
+-- palavra nunca é enviada pro client de quem está adivinhando.
 
 -- Realtime (idempotente: ALTER PUBLICATION não tem IF NOT EXISTS)
 do $$

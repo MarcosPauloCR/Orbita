@@ -43,10 +43,51 @@ export const DAILY_QUESTIONS = [
   "O que te faz sentir em casa?",
 ] as const;
 
+// Segunda trilha, mais lúdica — mesma mecânica (revela só quando os dois
+// responderem), pergunta diferente da reflexiva no mesmo dia.
+export const DAILY_HYPOTHETICALS = [
+  "Se a gente ganhasse na loteria amanhã, o que faria primeiro?",
+  "Se pudéssemos teleportar pra qualquer lugar agora, pra onde iríamos?",
+  "Se você virasse invisível por um dia, o que faria?",
+  "Se a gente trocasse de corpo por um dia, o que você faria no meu?",
+  "Se pudesse ter um superpoder só até meia-noite, qual seria?",
+  "Se nosso relacionamento fosse um filme, que gênero seria?",
+  "Se a gente morasse numa ilha deserta, quem sobreviveria melhor?",
+  "Se você pudesse jantar com qualquer pessoa (viva ou não), quem seria?",
+  "Se a gente tivesse que abrir um negócio juntos, qual seria?",
+  "Se você pudesse reviver um dia da sua vida, qual escolheria?",
+  "Se a gente fosse personagens de desenho, quais seríamos?",
+  "Se você tivesse que descrever a gente em uma palavra, qual seria?",
+  "Se pudesse pausar o tempo por uma hora, o que faria?",
+  "Se a gente ganhasse uma viagem surpresa amanhã, pra onde você torceria?",
+  "Se você fosse um animal, qual seria e por quê?",
+  "Se a gente tivesse uma banda, que tipo de música tocaríamos?",
+  "Se pudesse eliminar uma tarefa chata da vida pra sempre, qual seria?",
+  "Se a nossa casa pegasse fogo (e todos estivessem a salvo), o que você salvaria?",
+  "Se você pudesse saber a resposta de uma pergunta sobre o futuro, qual seria?",
+  "Se a gente trocasse de emprego por uma semana, quem se sairia melhor no do outro?",
+  "Se pudesse voltar no tempo e assistir a um evento histórico, qual escolheria?",
+  "Se a gente fosse abrir um restaurante, que tipo de comida serviríamos?",
+  "Se você pudesse ter qualquer talento instantaneamente, qual escolheria?",
+  "Se nosso primeiro encontro fosse hoje, o que você faria diferente?",
+  "Se a gente pudesse conversar com nós mesmos daqui a 10 anos, o que perguntaria?",
+] as const;
+
+function pickQuestion(
+  list: readonly string[],
+  date: Date,
+  salt: number
+): string {
+  const daysSinceEpoch = Math.floor(date.getTime() / 86400000) + salt;
+  const index = ((daysSinceEpoch % list.length) + list.length) % list.length;
+  return list[index];
+}
+
 export function getTodayQuestion(date: Date = new Date()): string {
-  const daysSinceEpoch = Math.floor(date.getTime() / 86400000);
-  const index =
-    ((daysSinceEpoch % DAILY_QUESTIONS.length) + DAILY_QUESTIONS.length) %
-    DAILY_QUESTIONS.length;
-  return DAILY_QUESTIONS[index];
+  return pickQuestion(DAILY_QUESTIONS, date, 0);
+}
+
+// salt diferente pra não repetir o mesmo índice relativo da outra lista
+export function getTodayHypothetical(date: Date = new Date()): string {
+  return pickQuestion(DAILY_HYPOTHETICALS, date, 17);
 }

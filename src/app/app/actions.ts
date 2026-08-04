@@ -12,7 +12,11 @@ import {
   type PushSubscriptionInput,
 } from "@/lib/push";
 import { ok, fail, type ActionResult } from "@/lib/action-result";
-import { getTodayQuestion } from "@/lib/daily-questions";
+import {
+  getTodayQuestion,
+  getTodayHypothetical,
+} from "@/lib/daily-questions";
+import { groupRowsByUtcDate, mutualDatesFrom } from "@/lib/streaks";
 
 function utcDayBounds(date = new Date()) {
   const start = new Date(
@@ -109,13 +113,34 @@ export async function getTodayCheckins(): Promise<{
   return { mine, other };
 }
 
+export type MoodHistoryEntry = { date: string; from_user: string; mood: number };
+
+export async function getMoodHistory(days = 7): Promise<MoodHistoryEntry[]> {
+  const session = await getSession();
+  if (!session) return [];
+
+  const supabase = createAdminClient();
+  const since = new Date(Date.now() - days * 86400000).toISOString();
+  const { data } = await supabase
+    .from("checkins")
+    .select("from_user, mood, created_at")
+    .gte("created_at", since)
+    .order("created_at", { ascending: true });
+
+  return (data ?? []).map((row) => ({
+    date: row.created_at.slice(0, 10),
+    from_user: row.from_user,
+    mood: row.mood,
+  }));
+}
+
 export async function submitCheckin(
   mood: number,
   note: string
 ): Promise<ActionResult<null>> {
   const session = await getSession();
   if (!session) return fail("Sessão expirada.");
-  if (!Number.isInteger(mood) || mood < 1 || mood > 5) {
+  if (!Number.isInteger(mood) || mood < 1 || mood > 10) {
     return fail("Humor inválido.");
   }
 
@@ -144,7 +169,9 @@ export async function submitCheckin(
   return ok(null);
 }
 
-// ---------- Pergunta do dia ----------
+// ---------- Pergunta do dia / imagina se ----------
+
+export type QuestionCategory = "reflective" | "hypothetical";
 
 export type DailyAnswerState = {
   question: string;
@@ -153,8 +180,14 @@ export type DailyAnswerState = {
   otherAnswer: string | null;
 };
 
-export async function getTodayAnswers(): Promise<DailyAnswerState> {
-  const question = getTodayQuestion();
+function questionFor(category: QuestionCategory): string {
+  return category === "hypothetical" ? getTodayHypothetical() : getTodayQuestion();
+}
+
+export async function getTodayAnswers(
+  category: QuestionCategory = "reflective"
+): Promise<DailyAnswerState> {
+  const question = questionFor(category);
   const session = await getSession();
   if (!session) {
     return { question, myAnswer: null, otherAnswered: false, otherAnswer: null };
@@ -164,7 +197,8 @@ export async function getTodayAnswers(): Promise<DailyAnswerState> {
   const { data } = await supabase
     .from("daily_answers")
     .select("from_user, answer")
-    .eq("question_date", todayDateKey());
+    .eq("question_date", todayDateKey())
+    .eq("category", category);
 
   const mine = data?.find((r) => r.from_user === session.userId);
   const otherRow = data?.find((r) => r.from_user !== session.userId);
@@ -179,7 +213,8 @@ export async function getTodayAnswers(): Promise<DailyAnswerState> {
 }
 
 export async function submitDailyAnswer(
-  answer: string
+  answer: string,
+  category: QuestionCategory = "reflective"
 ): Promise<ActionResult<null>> {
   const session = await getSession();
   if (!session) return fail("Sessão expirada.");
@@ -192,11 +227,113 @@ export async function submitDailyAnswer(
     {
       from_user: session.userId,
       question_date: todayDateKey(),
+      category,
       answer: trimmed,
     },
-    { onConflict: "from_user,question_date" }
+    { onConflict: "from_user,question_date,category" }
   );
 
   if (error) return fail(`Falha ao salvar resposta: ${error.message}`);
   return ok(null);
+}
+
+// ---------- Dias completos (sinal + humor + pergunta no mesmo dia) ----------
+
+export async function getCompleteDaysCount(): Promise<number> {
+  const session = await getSession();
+  if (!session) return 0;
+
+  const otherUser = (await getPublicUsers()).find(
+    (u) => u.id !== session.userId
+  );
+  if (!otherUser) return 0;
+  const userIds: [string, string] = [session.userId, otherUser.id];
+
+  const supabase = createAdminClient();
+  const [signalsRes, checkinsRes, answersRes] = await Promise.all([
+    supabase.from("signals").select("from_user, created_at").eq("type", "normal"),
+    supabase.from("checkins").select("from_user, created_at"),
+    supabase
+      .from("daily_answers")
+      .select("from_user, question_date")
+      .eq("category", "reflective"),
+  ]);
+
+  const signalDates = mutualDatesFrom(
+    groupRowsByUtcDate(
+      signalsRes.data ?? [],
+      (r) => r.created_at,
+      (r) => r.from_user
+    ),
+    userIds
+  );
+  const checkinDates = mutualDatesFrom(
+    groupRowsByUtcDate(
+      checkinsRes.data ?? [],
+      (r) => r.created_at,
+      (r) => r.from_user
+    ),
+    userIds
+  );
+  const answerDates = mutualDatesFrom(
+    groupRowsByUtcDate(
+      answersRes.data ?? [],
+      (r) => r.question_date,
+      (r) => r.from_user
+    ),
+    userIds
+  );
+
+  let count = 0;
+  signalDates.forEach((date) => {
+    if (checkinDates.has(date) && answerDates.has(date)) count++;
+  });
+  return count;
+}
+
+// ---------- Aniversários automáticos ----------
+
+export type Anniversary = { label: string; months: number };
+
+async function firstCreatedAt(
+  supabase: ReturnType<typeof createAdminClient>,
+  table: string
+): Promise<Date | null> {
+  const { data } = await supabase
+    .from(table)
+    .select("created_at")
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  return data ? new Date(data.created_at) : null;
+}
+
+function monthsSinceIfAnniversary(first: Date, today: Date): number | null {
+  if (first.getUTCDate() !== today.getUTCDate()) return null;
+  const months =
+    (today.getUTCFullYear() - first.getUTCFullYear()) * 12 +
+    (today.getUTCMonth() - first.getUTCMonth());
+  return months > 0 ? months : null;
+}
+
+export async function getAnniversaries(): Promise<Anniversary[]> {
+  const session = await getSession();
+  if (!session) return [];
+
+  const supabase = createAdminClient();
+  const today = new Date();
+  const sources: { table: string; label: string }[] = [
+    { table: "signals", label: "o primeiro sinal" },
+    { table: "messages", label: "a primeira mensagem" },
+    { table: "capsules", label: "a primeira cápsula do tempo" },
+  ];
+
+  const results: Anniversary[] = [];
+  for (const source of sources) {
+    const first = await firstCreatedAt(supabase, source.table);
+    if (!first) continue;
+    const months = monthsSinceIfAnniversary(first, today);
+    if (months !== null) results.push({ label: source.label, months });
+  }
+  return results;
 }

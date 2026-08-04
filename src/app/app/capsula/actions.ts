@@ -12,7 +12,8 @@ const PHOTO_URL_TTL = 60 * 60; // 1 hora
 export type Capsule = {
   id: string;
   from_user: string;
-  unlock_at: string;
+  unlock_at: string | null;
+  unlock_on_next_online: boolean;
   opened_at: string | null;
   opened_by: string | null;
   created_at: string;
@@ -25,11 +26,15 @@ type CapsuleRow = {
   from_user: string;
   message: string | null;
   photo_path: string | null;
-  unlock_at: string;
+  unlock_at: string | null;
+  unlock_on_next_online: boolean;
   opened_at: string | null;
   opened_by: string | null;
   created_at: string;
 };
+
+const CAPSULE_COLUMNS =
+  "id, from_user, message, photo_path, unlock_at, unlock_on_next_online, opened_at, opened_by, created_at";
 
 async function toCapsule(row: CapsuleRow): Promise<Capsule> {
   const opened = row.opened_at !== null;
@@ -47,6 +52,7 @@ async function toCapsule(row: CapsuleRow): Promise<Capsule> {
     id: row.id,
     from_user: row.from_user,
     unlock_at: row.unlock_at,
+    unlock_on_next_online: row.unlock_on_next_online,
     opened_at: row.opened_at,
     opened_by: row.opened_by,
     created_at: row.created_at,
@@ -60,12 +66,21 @@ export async function getCapsules(): Promise<Capsule[]> {
   if (!session) return [];
 
   const supabase = createAdminClient();
+
+  // Cápsula-relâmpago: se eu estou olhando essa tela agora, eu "fiquei
+  // online" — libera qualquer cápsula relâmpago que a outra pessoa mandou
+  // pra mim e ainda estava esperando esse momento.
+  await supabase
+    .from("capsules")
+    .update({ unlock_at: new Date().toISOString() })
+    .eq("unlock_on_next_online", true)
+    .is("unlock_at", null)
+    .neq("from_user", session.userId);
+
   const { data, error } = await supabase
     .from("capsules")
-    .select(
-      "id, from_user, message, photo_path, unlock_at, opened_at, opened_by, created_at"
-    )
-    .order("unlock_at", { ascending: true });
+    .select(CAPSULE_COLUMNS)
+    .order("created_at", { ascending: true });
 
   if (error || !data) return [];
   return Promise.all((data as CapsuleRow[]).map(toCapsule));
@@ -78,13 +93,18 @@ export async function createCapsule(
   if (!session) return fail("Sessão expirada.");
 
   const message = String(formData.get("message") ?? "").trim() || null;
+  const mode = String(formData.get("mode") ?? "date");
   const unlockAtRaw = String(formData.get("unlockAt") ?? "");
   const file = formData.get("photo");
+  const isLightning = mode === "online";
 
-  if (!unlockAtRaw) return fail("Escolha uma data de abertura.");
-  const unlockAt = new Date(unlockAtRaw);
-  if (Number.isNaN(unlockAt.getTime()) || unlockAt.getTime() <= Date.now()) {
-    return fail("A data precisa ser no futuro.");
+  let unlockAt: Date | null = null;
+  if (!isLightning) {
+    if (!unlockAtRaw) return fail("Escolha uma data de abertura.");
+    unlockAt = new Date(unlockAtRaw);
+    if (Number.isNaN(unlockAt.getTime()) || unlockAt.getTime() <= Date.now()) {
+      return fail("A data precisa ser no futuro.");
+    }
   }
 
   const hasPhoto = file instanceof File && file.size > 0;
@@ -118,7 +138,8 @@ export async function createCapsule(
     from_user: session.userId,
     message,
     photo_path: photoPath,
-    unlock_at: unlockAt.toISOString(),
+    unlock_at: isLightning ? null : unlockAt!.toISOString(),
+    unlock_on_next_online: isLightning,
   });
 
   if (error) return fail(`Falha ao criar cápsula: ${error.message}`);
@@ -132,14 +153,12 @@ export async function openCapsule(id: string): Promise<ActionResult<Capsule>> {
   const supabase = createAdminClient();
   const { data: row, error } = await supabase
     .from("capsules")
-    .select(
-      "id, from_user, message, photo_path, unlock_at, opened_at, opened_by, created_at"
-    )
+    .select(CAPSULE_COLUMNS)
     .eq("id", id)
     .single();
 
   if (error || !row) return fail("Cápsula não encontrada.");
-  if (new Date(row.unlock_at).getTime() > Date.now()) {
+  if (!row.unlock_at || new Date(row.unlock_at).getTime() > Date.now()) {
     return fail("Ainda não chegou a hora de abrir essa cápsula.");
   }
 

@@ -43,6 +43,7 @@ export function CapsuleView({
   const [isSending, setIsSending] = useState(false);
   const [openingId, setOpeningId] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
+  const [mode, setMode] = useState<"date" | "online">("date");
 
   useEffect(() => {
     const interval = setInterval(() => setNow(Date.now()), 30_000);
@@ -50,6 +51,9 @@ export function CapsuleView({
   }, []);
 
   const minDate = useMemo(nowLocalInputValue, []);
+  const otherUserName =
+    Object.entries(userNames).find(([id]) => id !== currentUserId)?.[1] ??
+    "ela";
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -64,6 +68,7 @@ export function CapsuleView({
         return;
       }
       form.reset();
+      setMode("date");
       setCapsules(await getCapsules());
     } finally {
       setIsSending(false);
@@ -102,16 +107,37 @@ export function CapsuleView({
           accept="image/*"
           className="text-xs text-ink-muted file:mr-3 file:rounded-full file:border-0 file:bg-moon file:px-3 file:py-1.5 file:text-xs file:text-btn-ink"
         />
-        <label className="flex flex-col gap-1 text-xs text-ink-muted">
-          abre em
-          <input
-            type="datetime-local"
-            name="unlockAt"
-            min={minDate}
-            required
-            className="rounded-xl border border-hairline bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-ink-muted"
-          />
-        </label>
+        <input type="hidden" name="mode" value={mode} />
+        <div className="flex gap-3 text-xs text-ink-muted">
+          <label className="flex items-center gap-1">
+            <input
+              type="radio"
+              checked={mode === "date"}
+              onChange={() => setMode("date")}
+            />
+            numa data
+          </label>
+          <label className="flex items-center gap-1">
+            <input
+              type="radio"
+              checked={mode === "online"}
+              onChange={() => setMode("online")}
+            />
+            quando {otherUserName} aparecer online
+          </label>
+        </div>
+        {mode === "date" && (
+          <label className="flex flex-col gap-1 text-xs text-ink-muted">
+            abre em
+            <input
+              type="datetime-local"
+              name="unlockAt"
+              min={minDate}
+              required
+              className="rounded-xl border border-hairline bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-ink-muted"
+            />
+          </label>
+        )}
         <button
           type="submit"
           disabled={isSending}
@@ -131,7 +157,10 @@ export function CapsuleView({
         {capsules.map((capsule) => {
           const isMine = capsule.from_user === currentUserId;
           const isOpened = capsule.opened_at !== null;
-          const isLocked = !isOpened && new Date(capsule.unlock_at).getTime() > now;
+          const isPendingOnline = !capsule.unlock_at && capsule.unlock_on_next_online;
+          const isLocked =
+            !isOpened &&
+            (isPendingOnline || (capsule.unlock_at !== null && new Date(capsule.unlock_at).getTime() > now));
 
           return (
             <div
@@ -144,7 +173,9 @@ export function CapsuleView({
 
               {isLocked && (
                 <p className="text-sm text-ink-muted">
-                  🔒 {formatCountdown(capsule.unlock_at, now)}
+                  {isPendingOnline
+                    ? `⚡ aguardando ${isMine ? otherUserName : "você"} aparecer online`
+                    : `🔒 ${formatCountdown(capsule.unlock_at!, now)}`}
                 </p>
               )}
 
