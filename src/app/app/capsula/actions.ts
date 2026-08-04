@@ -4,6 +4,7 @@ import { randomUUID } from "crypto";
 import { getSession } from "@/lib/auth/get-session";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendPushToUser } from "@/lib/push";
+import { ok, fail, type ActionResult } from "@/lib/action-result";
 
 const BUCKET = "updates-media";
 const PHOTO_URL_TTL = 60 * 60; // 1 hora
@@ -67,23 +68,25 @@ export async function getCapsules(): Promise<Capsule[]> {
   return Promise.all((data as CapsuleRow[]).map(toCapsule));
 }
 
-export async function createCapsule(formData: FormData): Promise<void> {
+export async function createCapsule(
+  formData: FormData
+): Promise<ActionResult<null>> {
   const session = await getSession();
-  if (!session) throw new Error("Sessão expirada.");
+  if (!session) return fail("Sessão expirada.");
 
   const message = String(formData.get("message") ?? "").trim() || null;
   const unlockAtRaw = String(formData.get("unlockAt") ?? "");
   const file = formData.get("photo");
 
-  if (!unlockAtRaw) throw new Error("Escolha uma data de abertura.");
+  if (!unlockAtRaw) return fail("Escolha uma data de abertura.");
   const unlockAt = new Date(unlockAtRaw);
   if (Number.isNaN(unlockAt.getTime()) || unlockAt.getTime() <= Date.now()) {
-    throw new Error("A data precisa ser no futuro.");
+    return fail("A data precisa ser no futuro.");
   }
 
   const hasPhoto = file instanceof File && file.size > 0;
   if (!message && !hasPhoto) {
-    throw new Error("Escreva uma mensagem ou anexe uma foto.");
+    return fail("Escreva uma mensagem ou anexe uma foto.");
   }
 
   const supabase = createAdminClient();
@@ -92,10 +95,10 @@ export async function createCapsule(formData: FormData): Promise<void> {
   if (hasPhoto) {
     const photoFile = file as File;
     if (!photoFile.type.startsWith("image/")) {
-      throw new Error("Arquivo precisa ser uma imagem.");
+      return fail("Arquivo precisa ser uma imagem.");
     }
     if (photoFile.size > 8 * 1024 * 1024) {
-      throw new Error("Imagem muito grande (máx. 8MB).");
+      return fail("Imagem muito grande (máx. 8MB).");
     }
     const ext = photoFile.name.split(".").pop() || "jpg";
     photoPath = `capsules/${session.userId}/${randomUUID()}.${ext}`;
@@ -104,7 +107,7 @@ export async function createCapsule(formData: FormData): Promise<void> {
       .from(BUCKET)
       .upload(photoPath, buffer, { contentType: photoFile.type });
     if (uploadError) {
-      throw new Error(`Falha ao enviar foto: ${uploadError.message}`);
+      return fail(`Falha ao enviar foto: ${uploadError.message}`);
     }
   }
 
@@ -115,12 +118,13 @@ export async function createCapsule(formData: FormData): Promise<void> {
     unlock_at: unlockAt.toISOString(),
   });
 
-  if (error) throw new Error(`Falha ao criar cápsula: ${error.message}`);
+  if (error) return fail(`Falha ao criar cápsula: ${error.message}`);
+  return ok(null);
 }
 
-export async function openCapsule(id: string): Promise<Capsule> {
+export async function openCapsule(id: string): Promise<ActionResult<Capsule>> {
   const session = await getSession();
-  if (!session) throw new Error("Sessão expirada.");
+  if (!session) return fail("Sessão expirada.");
 
   const supabase = createAdminClient();
   const { data: row, error } = await supabase
@@ -131,9 +135,9 @@ export async function openCapsule(id: string): Promise<Capsule> {
     .eq("id", id)
     .single();
 
-  if (error || !row) throw new Error("Cápsula não encontrada.");
+  if (error || !row) return fail("Cápsula não encontrada.");
   if (new Date(row.unlock_at).getTime() > Date.now()) {
-    throw new Error("Ainda não chegou a hora de abrir essa cápsula.");
+    return fail("Ainda não chegou a hora de abrir essa cápsula.");
   }
 
   if (!row.opened_at) {
@@ -151,5 +155,5 @@ export async function openCapsule(id: string): Promise<Capsule> {
     }
   }
 
-  return toCapsule(row as CapsuleRow);
+  return ok(await toCapsule(row as CapsuleRow));
 }

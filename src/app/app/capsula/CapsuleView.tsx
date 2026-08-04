@@ -56,11 +56,13 @@ export function CapsuleView({
 
     setIsSending(true);
     try {
-      await createCapsule(formData);
+      const result = await createCapsule(formData);
+      if (!result.ok) {
+        alert(result.error);
+        return;
+      }
       form.reset();
       setCapsules(await getCapsules());
-    } catch (err) {
-      alert(err instanceof Error ? err.message : "Falha ao criar cápsula.");
     } finally {
       setIsSending(false);
     }
@@ -69,10 +71,12 @@ export function CapsuleView({
   async function handleOpen(id: string) {
     setOpeningId(id);
     try {
-      const updated = await openCapsule(id);
-      setCapsules((prev) => prev.map((c) => (c.id === id ? updated : c)));
-    } catch (err) {
-      alert(err instanceof Error ? err.message : "Falha ao abrir cápsula.");
+      const result = await openCapsule(id);
+      if (!result.ok) {
+        alert(result.error);
+        return;
+      }
+      setCapsules((prev) => prev.map((c) => (c.id === id ? result.data : c)));
     } finally {
       setOpeningId(null);
     }

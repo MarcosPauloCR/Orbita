@@ -83,7 +83,12 @@ export function PhotoFeed({
 
     setIsSending(true);
     try {
-      const photo = await sharePhoto(formData);
+      const result = await sharePhoto(formData);
+      if (!result.ok) {
+        alert(result.error);
+        return;
+      }
+      const photo = result.data;
       setPhotos((prev) => [photo, ...prev]);
       channelRef.current?.send({
         type: "broadcast",
@@ -92,8 +97,6 @@ export function PhotoFeed({
       });
       form.reset();
       setSelectedFile(null);
-    } catch (err) {
-      alert(err instanceof Error ? err.message : "Falha ao enviar foto.");
     } finally {
       setIsSending(false);
     }
@@ -102,16 +105,18 @@ export function PhotoFeed({
   async function handleReveal(id: string) {
     setRevealingId(id);
     try {
-      const url = await viewDisappearingPhoto(id);
-      setViewerUrl(url);
+      const result = await viewDisappearingPhoto(id);
+      if (!result.ok) {
+        alert(result.error);
+        return;
+      }
+      setViewerUrl(result.data);
       setPhotos((prev) => prev.filter((p) => p.id !== id));
       channelRef.current?.send({
         type: "broadcast",
         event: "photo-viewed",
         payload: { id },
       });
-    } catch (err) {
-      alert(err instanceof Error ? err.message : "Falha ao abrir foto.");
     } finally {
       setRevealingId(null);
     }

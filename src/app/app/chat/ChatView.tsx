@@ -91,12 +91,16 @@ export function ChatView({
     setDraft("");
 
     startTransition(async () => {
-      const message = await sendMessage(content);
-      setMessages((prev) => [...prev, message]);
+      const result = await sendMessage(content);
+      if (!result.ok) {
+        alert(result.error);
+        return;
+      }
+      setMessages((prev) => [...prev, result.data]);
       channelRef.current?.send({
         type: "broadcast",
         event: "message",
-        payload: message,
+        payload: result.data,
       });
     });
   }
@@ -111,15 +115,17 @@ export function ChatView({
 
     setIsSendingPhoto(true);
     try {
-      const message = await sendPhotoMessage(formData);
-      setMessages((prev) => [...prev, message]);
+      const result = await sendPhotoMessage(formData);
+      if (!result.ok) {
+        alert(result.error);
+        return;
+      }
+      setMessages((prev) => [...prev, result.data]);
       channelRef.current?.send({
         type: "broadcast",
         event: "message",
-        payload: message,
+        payload: result.data,
       });
-    } catch (err) {
-      alert(err instanceof Error ? err.message : "Falha ao enviar foto.");
     } finally {
       setIsSendingPhoto(false);
     }

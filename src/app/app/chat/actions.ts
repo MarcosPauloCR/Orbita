@@ -3,6 +3,7 @@
 import { randomUUID } from "crypto";
 import { getSession } from "@/lib/auth/get-session";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { ok, fail, type ActionResult } from "@/lib/action-result";
 
 const BUCKET = "updates-media";
 const PHOTO_URL_TTL = 60 * 60; // 1 hora
@@ -62,12 +63,14 @@ export async function getMessages(): Promise<ChatMessage[]> {
   return Promise.all((data as MessageRow[]).map(withPhotoUrl));
 }
 
-export async function sendMessage(content: string): Promise<ChatMessage> {
+export async function sendMessage(
+  content: string
+): Promise<ActionResult<ChatMessage>> {
   const session = await getSession();
-  if (!session) throw new Error("Sessão expirada.");
+  if (!session) return fail("Sessão expirada.");
 
   const trimmed = content.trim();
-  if (!trimmed) throw new Error("Mensagem vazia.");
+  if (!trimmed) return fail("Mensagem vazia.");
 
   const supabase = createAdminClient();
   const { data, error } = await supabase
@@ -76,23 +79,25 @@ export async function sendMessage(content: string): Promise<ChatMessage> {
     .select("id, from_user, content, photo_path, read_at, created_at")
     .single();
 
-  if (error || !data) throw new Error(`Falha ao enviar mensagem: ${error?.message}`);
-  return withPhotoUrl(data);
+  if (error || !data) return fail(`Falha ao enviar mensagem: ${error?.message}`);
+  return ok(await withPhotoUrl(data));
 }
 
-export async function sendPhotoMessage(formData: FormData): Promise<ChatMessage> {
+export async function sendPhotoMessage(
+  formData: FormData
+): Promise<ActionResult<ChatMessage>> {
   const session = await getSession();
-  if (!session) throw new Error("Sessão expirada.");
+  if (!session) return fail("Sessão expirada.");
 
   const file = formData.get("photo");
   if (!(file instanceof File) || file.size === 0) {
-    throw new Error("Selecione uma foto.");
+    return fail("Selecione uma foto.");
   }
   if (!file.type.startsWith("image/")) {
-    throw new Error("Arquivo precisa ser uma imagem.");
+    return fail("Arquivo precisa ser uma imagem.");
   }
   if (file.size > 8 * 1024 * 1024) {
-    throw new Error("Imagem muito grande (máx. 8MB).");
+    return fail("Imagem muito grande (máx. 8MB).");
   }
 
   const ext = file.name.split(".").pop() || "jpg";
@@ -105,7 +110,7 @@ export async function sendPhotoMessage(formData: FormData): Promise<ChatMessage>
     .from(BUCKET)
     .upload(path, buffer, { contentType: file.type });
   if (uploadError) {
-    throw new Error(`Falha ao enviar foto: ${uploadError.message}`);
+    return fail(`Falha ao enviar foto: ${uploadError.message}`);
   }
 
   const { data, error } = await supabase
@@ -114,8 +119,8 @@ export async function sendPhotoMessage(formData: FormData): Promise<ChatMessage>
     .select("id, from_user, content, photo_path, read_at, created_at")
     .single();
 
-  if (error || !data) throw new Error(`Falha ao salvar mensagem: ${error?.message}`);
-  return withPhotoUrl(data);
+  if (error || !data) return fail(`Falha ao salvar mensagem: ${error?.message}`);
+  return ok(await withPhotoUrl(data));
 }
 
 export async function markMessagesRead(ids: string[]): Promise<void> {

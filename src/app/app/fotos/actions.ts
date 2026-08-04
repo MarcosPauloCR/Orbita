@@ -3,6 +3,7 @@
 import { randomUUID } from "crypto";
 import { getSession } from "@/lib/auth/get-session";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { ok, fail, type ActionResult } from "@/lib/action-result";
 
 const BUCKET = "updates-media";
 const FEED_URL_TTL = 60 * 60; // 1 hora
@@ -72,19 +73,21 @@ export async function getPhotos(): Promise<PhotoUpdate[]> {
   );
 }
 
-export async function sharePhoto(formData: FormData): Promise<PhotoUpdate> {
+export async function sharePhoto(
+  formData: FormData
+): Promise<ActionResult<PhotoUpdate>> {
   const session = await getSession();
-  if (!session) throw new Error("Sessão expirada.");
+  if (!session) return fail("Sessão expirada.");
 
   const file = formData.get("photo");
   if (!(file instanceof File) || file.size === 0) {
-    throw new Error("Selecione uma foto.");
+    return fail("Selecione uma foto.");
   }
   if (!file.type.startsWith("image/")) {
-    throw new Error("Arquivo precisa ser uma imagem.");
+    return fail("Arquivo precisa ser uma imagem.");
   }
   if (file.size > 8 * 1024 * 1024) {
-    throw new Error("Imagem muito grande (máx. 8MB).");
+    return fail("Imagem muito grande (máx. 8MB).");
   }
 
   const disappearing = formData.get("disappearing") === "on";
@@ -98,7 +101,7 @@ export async function sharePhoto(formData: FormData): Promise<PhotoUpdate> {
     .from(BUCKET)
     .upload(path, buffer, { contentType: file.type });
   if (uploadError) {
-    throw new Error(`Falha ao enviar foto: ${uploadError.message}`);
+    return fail(`Falha ao enviar foto: ${uploadError.message}`);
   }
 
   const { data: row, error: insertError } = await supabase
@@ -113,21 +116,21 @@ export async function sharePhoto(formData: FormData): Promise<PhotoUpdate> {
     .single();
 
   if (insertError || !row) {
-    throw new Error(`Falha ao salvar foto: ${insertError?.message}`);
+    return fail(`Falha ao salvar foto: ${insertError?.message}`);
   }
 
   const { data: signed } = await supabase.storage
     .from(BUCKET)
     .createSignedUrl(path, FEED_URL_TTL);
 
-  return {
+  return ok({
     id: row.id,
     from_user: row.from_user,
     disappearing: row.disappearing,
     read_at: row.read_at,
     created_at: row.created_at,
     url: signed?.signedUrl ?? null,
-  };
+  });
 }
 
 export async function markPhotosSeen(ids: string[]): Promise<void> {
@@ -144,9 +147,11 @@ export async function markPhotosSeen(ids: string[]): Promise<void> {
     .is("read_at", null);
 }
 
-export async function viewDisappearingPhoto(id: string): Promise<string> {
+export async function viewDisappearingPhoto(
+  id: string
+): Promise<ActionResult<string>> {
   const session = await getSession();
-  if (!session) throw new Error("Sessão expirada.");
+  if (!session) return fail("Sessão expirada.");
 
   const supabase = createAdminClient();
   const { data: row, error } = await supabase
@@ -156,8 +161,8 @@ export async function viewDisappearingPhoto(id: string): Promise<string> {
     .eq("type", "photo")
     .single();
 
-  if (error || !row || !row.content) throw new Error("Foto não encontrada.");
-  if (row.from_user === session.userId) throw new Error("Essa foto é sua.");
+  if (error || !row || !row.content) return fail("Foto não encontrada.");
+  if (row.from_user === session.userId) return fail("Essa foto é sua.");
 
   const { data: signed } = await supabase.storage
     .from(BUCKET)
@@ -173,5 +178,5 @@ export async function viewDisappearingPhoto(id: string): Promise<string> {
     await supabase.from("updates").delete().eq("id", id);
   }
 
-  return signed?.signedUrl ?? "";
+  return ok(signed?.signedUrl ?? "");
 }
