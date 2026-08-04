@@ -85,7 +85,7 @@ export function CapsuleView({
   }
 
   return (
-    <div className="flex w-full max-w-sm flex-1 flex-col gap-6 overflow-y-auto pb-4">
+    <div className="flex w-full max-w-sm min-h-0 flex-1 flex-col gap-6 overflow-y-auto pb-4">
       <form
         onSubmit={handleSubmit}
         className="flex flex-col gap-2 border-b border-hairline pb-4"

@@ -3,10 +3,12 @@
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { computeMutualStreak, currentTrophy, type SignalRow } from "@/lib/streaks";
+import type { ActionResult } from "@/lib/action-result";
+import { ActivityCalendar } from "./ActivityCalendar";
 
 type HistoryGroup = {
   label: string;
-  items: { from_user: string; time: string }[];
+  items: { from_user: string; time: string; type: "normal" | "sos" }[];
 };
 
 function groupByLocalDay(signals: SignalRow[]): HistoryGroup[] {
@@ -18,7 +20,10 @@ function groupByLocalDay(signals: SignalRow[]): HistoryGroup[] {
   const yesterday = new Date(today);
   yesterday.setDate(today.getDate() - 1);
 
-  const byKey = new Map<string, { from_user: string; time: string }[]>();
+  const byKey = new Map<
+    string,
+    { from_user: string; time: string; type: "normal" | "sos" }[]
+  >();
   for (const s of sorted) {
     const date = new Date(s.created_at);
     const key = date.toDateString();
@@ -26,6 +31,7 @@ function groupByLocalDay(signals: SignalRow[]): HistoryGroup[] {
     byKey.get(key)!.push({
       from_user: s.from_user,
       time: date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
+      type: s.type ?? "normal",
     });
   }
 
@@ -53,6 +59,7 @@ export function SignalDashboard({
   totalCount,
   initialSignals,
   sendSignalAction,
+  sendSOSAction,
 }: {
   currentUserId: string;
   otherUserName: string;
@@ -60,12 +67,14 @@ export function SignalDashboard({
   totalCount: number;
   initialSignals: SignalRow[];
   sendSignalAction: () => Promise<void>;
+  sendSOSAction: () => Promise<ActionResult<null>>;
 }) {
   const [signals, setSignals] = useState<SignalRow[]>(initialSignals);
   const [total, setTotal] = useState(totalCount);
   const [isPending, startTransition] = useTransition();
+  const [isSendingSOS, setIsSendingSOS] = useState(false);
   const [sent, setSent] = useState(false);
-  const [received, setReceived] = useState(false);
+  const [received, setReceived] = useState<"normal" | "sos" | null>(null);
 
   useEffect(() => {
     const supabase = createClient();
@@ -77,10 +86,10 @@ export function SignalDashboard({
         (payload) => {
           const row = payload.new as SignalRow;
           setSignals((prev) => [row, ...prev]);
-          setTotal((prev) => prev + 1);
+          if ((row.type ?? "normal") === "normal") setTotal((prev) => prev + 1);
           if (row.from_user !== currentUserId) {
-            setReceived(true);
-            setTimeout(() => setReceived(false), 4500);
+            setReceived(row.type === "sos" ? "sos" : "normal");
+            setTimeout(() => setReceived(null), row.type === "sos" ? 8000 : 4500);
           }
         }
       )
@@ -99,6 +108,16 @@ export function SignalDashboard({
     });
   }
 
+  function handleSOS() {
+    if (!confirm(`Mandar um SOS pra ${otherUserName} agora?`)) return;
+    setIsSendingSOS(true);
+    sendSOSAction()
+      .then((result) => {
+        if (!result.ok) alert(result.error);
+      })
+      .finally(() => setIsSendingSOS(false));
+  }
+
   const streak = useMemo(
     () => computeMutualStreak(signals, userIds),
     [signals, userIds]
@@ -107,8 +126,8 @@ export function SignalDashboard({
   const groups = useMemo(() => groupByLocalDay(signals), [signals]);
 
   return (
-    <div className="flex w-full max-w-sm flex-1 flex-col items-center gap-6 overflow-y-auto pb-4">
-      <div className="flex flex-col items-center gap-4 pt-2">
+    <div className="flex w-full flex-col items-center gap-6">
+      <div className="flex flex-col items-center gap-3 pt-2">
         <button
           onClick={handleClick}
           disabled={isPending}
@@ -120,6 +139,14 @@ export function SignalDashboard({
         <p className="h-4 text-xs text-ink-muted">
           {isPending ? "enviando…" : sent ? "enviado ✦" : ""}
         </p>
+        <button
+          type="button"
+          onClick={handleSOS}
+          disabled={isSendingSOS}
+          className="rounded-full border border-red-300 px-3 py-1 text-[11px] text-red-500 disabled:opacity-50"
+        >
+          {isSendingSOS ? "enviando…" : "🆘 preciso de você"}
+        </button>
       </div>
 
       <div className="grid w-full grid-cols-2 gap-2">
@@ -147,6 +174,8 @@ export function SignalDashboard({
         </div>
       </div>
 
+      <ActivityCalendar signals={signals} userIds={userIds} />
+
       <div className="w-full">
         <p className="mb-2 text-[10px] uppercase tracking-wide text-ink-muted">
           histórico
@@ -167,6 +196,7 @@ export function SignalDashboard({
                     className="flex items-center justify-between rounded-lg border border-hairline bg-surface px-3 py-1.5 text-xs text-ink-muted"
                   >
                     <span>
+                      {item.type === "sos" ? "🆘 " : ""}
                       {item.from_user === currentUserId ? "você" : otherUserName}
                     </span>
                     <span className="font-mono">{item.time}</span>
@@ -179,10 +209,22 @@ export function SignalDashboard({
       </div>
 
       {received && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="animate-fade-in mx-4 rounded-3xl border border-hairline bg-surface px-8 py-7 text-center shadow-2xl">
+        <div
+          className={`fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm ${
+            received === "sos" ? "bg-red-950/60" : "bg-black/40"
+          }`}
+        >
+          <div
+            className={`animate-fade-in mx-4 rounded-3xl border px-8 py-7 text-center shadow-2xl ${
+              received === "sos"
+                ? "border-red-400 bg-surface"
+                : "border-hairline bg-surface"
+            }`}
+          >
             <p className="font-display text-2xl text-ink">
-              {otherUserName} está pensando em você
+              {received === "sos"
+                ? `🆘 ${otherUserName} precisa de você agora`
+                : `${otherUserName} está pensando em você`}
             </p>
             <p className="mt-1 text-ink-muted">✦</p>
           </div>

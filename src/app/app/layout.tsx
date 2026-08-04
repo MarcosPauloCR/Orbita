@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import { getSession } from "@/lib/auth/get-session";
 import { getPublicUsers } from "@/lib/auth/users";
@@ -12,6 +12,15 @@ export const metadata: Metadata = {
   title: "Órbita",
 };
 
+// Trava zoom/pan nas telas reais do app pra parecer um app instalado, não
+// uma página de site — a busca disfarçada em "/" fica de fora disso.
+export const viewport: Viewport = {
+  themeColor: "#111827",
+  userScalable: false,
+  maximumScale: 1,
+  minimumScale: 1,
+};
+
 export default async function AppLayout({
   children,
 }: {
@@ -23,9 +32,9 @@ export default async function AppLayout({
     : undefined;
 
   const content = (
-    <div className="relative min-h-screen">
+    <div className="relative h-dvh overflow-hidden overscroll-none">
       <Constellation />
-      <div className="relative z-10 flex min-h-screen flex-col">
+      <div className="relative z-10 flex h-full flex-col">
         <header className="flex items-center justify-between px-6 py-5">
           <span className="font-display text-lg text-ink">Órbita</span>
           <div className="flex items-center gap-4">
@@ -51,7 +60,7 @@ export default async function AppLayout({
             </form>
           </div>
         </header>
-        <main className="flex flex-1 flex-col items-center justify-center px-4 pb-24">
+        <main className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-hidden px-4 pb-24">
           {children}
         </main>
         <BottomNav />

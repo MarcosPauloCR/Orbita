@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Constellation } from "@/components/Constellation";
 import { LoginForm } from "./LoginForm";
 
@@ -6,9 +6,18 @@ export const metadata: Metadata = {
   title: "Órbita",
 };
 
+// Trava zoom/pan só nas telas reais do app — a busca disfarçada em "/"
+// precisa continuar se comportando como um site normal.
+export const viewport: Viewport = {
+  themeColor: "#111827",
+  userScalable: false,
+  maximumScale: 1,
+  minimumScale: 1,
+};
+
 export default function LoginPage() {
   return (
-    <main className="relative flex min-h-screen items-center justify-center px-4">
+    <main className="relative flex h-dvh items-center justify-center overflow-hidden overscroll-none px-4">
       <Constellation />
       <div className="relative z-10 w-full max-w-sm">
         <h1 className="mb-8 text-center font-display text-3xl text-ink">

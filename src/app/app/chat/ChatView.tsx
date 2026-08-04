@@ -193,7 +193,7 @@ export function ChatView({
   }
 
   return (
-    <div className="flex h-full w-full max-w-sm flex-1 flex-col">
+    <div className="flex h-full min-h-0 w-full max-w-sm flex-1 flex-col">
       <div className="flex items-center justify-between border-b border-hairline pb-3">
         <span className="font-display text-lg text-ink">
           {otherUserName}
@@ -208,7 +208,7 @@ export function ChatView({
         </span>
       </div>
 
-      <div className="flex-1 space-y-2 overflow-y-auto py-4">
+      <div className="min-h-0 flex-1 space-y-2 overflow-y-auto py-4">
         {messages.map((m) => {
           const isMine = m.from_user === currentUserId;
           const requestedByMe = m.delete_requested_by === currentUserId;

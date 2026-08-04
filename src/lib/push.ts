@@ -50,7 +50,7 @@ export async function upsertPushSubscription(
 
 export async function sendPushToUser(
   userId: string,
-  payload: { title: string; body: string }
+  payload: { title: string; body: string; urgent?: boolean }
 ): Promise<void> {
   if (!ensureVapidConfigured()) return;
 

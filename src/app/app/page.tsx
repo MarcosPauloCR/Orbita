@@ -4,7 +4,14 @@ import { getPublicUsers } from "@/lib/auth/users";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { SignalRow } from "@/lib/streaks";
 import { SignalDashboard } from "./SignalDashboard";
-import { sendSignal } from "./actions";
+import { MoodCheckin } from "./MoodCheckin";
+import { DailyQuestion } from "./DailyQuestion";
+import {
+  sendSignal,
+  sendSOS,
+  getTodayCheckins,
+  getTodayAnswers,
+} from "./actions";
 
 export default async function AppPage() {
   const session = await getSession();
@@ -14,6 +21,7 @@ export default async function AppPage() {
 
   const users = await getPublicUsers();
   const otherUser = users.find((u) => u.id !== session.userId);
+  const otherUserName = otherUser?.name ?? "ela";
 
   const supabase = createAdminClient();
   const { count } = await supabase
@@ -22,18 +30,32 @@ export default async function AppPage() {
 
   const { data: signals } = await supabase
     .from("signals")
-    .select("from_user, created_at")
+    .select("from_user, created_at, type")
     .order("created_at", { ascending: false })
     .limit(1000);
 
+  const [checkins, answers] = await Promise.all([
+    getTodayCheckins(),
+    getTodayAnswers(),
+  ]);
+
   return (
-    <SignalDashboard
-      currentUserId={session.userId}
-      otherUserName={otherUser?.name ?? "ela"}
-      userIds={[session.userId, otherUser?.id ?? ""]}
-      totalCount={count ?? 0}
-      initialSignals={(signals ?? []) as SignalRow[]}
-      sendSignalAction={sendSignal}
-    />
+    <div className="flex w-full max-w-sm min-h-0 flex-1 flex-col gap-8 overflow-y-auto pb-4">
+      <SignalDashboard
+        currentUserId={session.userId}
+        otherUserName={otherUserName}
+        userIds={[session.userId, otherUser?.id ?? ""]}
+        totalCount={count ?? 0}
+        initialSignals={(signals ?? []) as SignalRow[]}
+        sendSignalAction={sendSignal}
+        sendSOSAction={sendSOS}
+      />
+      <MoodCheckin
+        otherUserName={otherUserName}
+        initialMine={checkins.mine}
+        initialOther={checkins.other}
+      />
+      <DailyQuestion otherUserName={otherUserName} initial={answers} />
+    </div>
   );
 }

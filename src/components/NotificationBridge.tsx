@@ -39,6 +39,9 @@ export function NotificationBridge() {
       if (event.data?.type === "signal-received") {
         const audio = new Audio("/sounds/signal.mp3");
         audio.play().catch(() => {});
+        if (event.data.urgent && "vibrate" in navigator) {
+          navigator.vibrate([200, 100, 200, 100, 200]);
+        }
       }
     }
 

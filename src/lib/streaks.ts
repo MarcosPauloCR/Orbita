@@ -1,7 +1,26 @@
-export type SignalRow = { from_user: string; created_at: string };
+export type SignalRow = {
+  from_user: string;
+  created_at: string;
+  type?: "normal" | "sos";
+};
 
 function toUtcDateKey(iso: string): string {
   return new Date(iso).toISOString().slice(0, 10);
+}
+
+/** Mapa data -> conjunto de usuários que mandaram sinal normal naquele dia
+ * (UTC). Usado tanto pro streak quanto pro calendário de atividade. */
+export function groupSignalsByDay(
+  signals: SignalRow[]
+): Map<string, Set<string>> {
+  const byDate = new Map<string, Set<string>>();
+  for (const s of signals) {
+    if (s.type === "sos") continue;
+    const key = toUtcDateKey(s.created_at);
+    if (!byDate.has(key)) byDate.set(key, new Set());
+    byDate.get(key)!.add(s.from_user);
+  }
+  return byDate;
 }
 
 /** Conta dias seguidos (até hoje ou ontem) em que os dois usuários mandaram
@@ -10,12 +29,7 @@ export function computeMutualStreak(
   signals: SignalRow[],
   userIds: [string, string]
 ): number {
-  const byDate = new Map<string, Set<string>>();
-  for (const s of signals) {
-    const key = toUtcDateKey(s.created_at);
-    if (!byDate.has(key)) byDate.set(key, new Set());
-    byDate.get(key)!.add(s.from_user);
-  }
+  const byDate = groupSignalsByDay(signals);
 
   const mutualDates = new Set<string>();
   byDate.forEach((users, date) => {

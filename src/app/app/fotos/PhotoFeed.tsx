@@ -144,7 +144,7 @@ export function PhotoFeed({
   }
 
   return (
-    <div className="flex w-full max-w-sm flex-1 flex-col">
+    <div className="flex w-full max-w-sm flex-1 flex-col min-h-0 overflow-y-auto">
       <form
         onSubmit={handleSubmit}
         className="flex flex-col gap-2 border-b border-hairline pb-4"

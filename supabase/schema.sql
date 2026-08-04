@@ -39,6 +39,20 @@ create table if not exists signals (
   created_at timestamptz default now()
 );
 
+-- "sos" é uma variante urgente do sinal normal — não entra no streak nem
+-- no contador do dia a dia, só aparece marcada no histórico.
+alter table signals add column if not exists type text not null default 'normal';
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint where conname = 'signals_type_check'
+  ) then
+    alter table signals add constraint signals_type_check
+      check (type in ('normal', 'sos'));
+  end if;
+end $$;
+
 create table if not exists checkins (
   id uuid default gen_random_uuid() primary key,
   from_user text not null,
@@ -126,6 +140,23 @@ alter table capsules enable row level security;
 
 -- Sem policies para anon/authenticated: só a service role lê/grava, e as
 -- Server Actions nunca expõem um caminho de "delete" pra essa tabela.
+
+-- Pergunta do dia: a pergunta em si não fica no banco (é escolhida por
+-- data a partir de uma lista fixa no código, igual pros dois). Só a
+-- resposta de cada um fica aqui, uma por pessoa por dia — e a Server
+-- Action só revela a resposta do outro depois que os dois responderem.
+create table if not exists daily_answers (
+  id uuid default gen_random_uuid() primary key,
+  from_user text not null references users (id),
+  question_date date not null,
+  answer text not null,
+  created_at timestamptz default now(),
+  unique (from_user, question_date)
+);
+
+alter table daily_answers enable row level security;
+
+-- Sem policies para anon/authenticated: só a service role lê/grava.
 
 -- Realtime (idempotente: ALTER PUBLICATION não tem IF NOT EXISTS)
 do $$
