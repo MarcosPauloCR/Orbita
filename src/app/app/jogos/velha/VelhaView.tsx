@@ -5,6 +5,7 @@ import type { RealtimeChannel } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import { startGame, makeMove, getGame, type TicTacToeGame } from "./actions";
 import { useDeviceMode } from "../GameShell";
+import { GameRules } from "../GameRules";
 
 const CHANNEL = "orbita-velha";
 
@@ -91,6 +92,16 @@ export function VelhaView({ otherUserName }: { otherUserName: string }) {
         <p className="font-display text-lg text-ink">
           {statusLabel(game, otherUserName)}
         </p>
+      )}
+
+      {showStart && (
+        <GameRules
+          items={[
+            "Vocês se revezam marcando X ou O no tabuleiro 3x3.",
+            "Quem formar uma linha completa primeiro (na horizontal, vertical ou diagonal) vence.",
+            "Se o tabuleiro encher sem ninguém formar linha, é empate.",
+          ]}
+        />
       )}
 
       {showStart && (

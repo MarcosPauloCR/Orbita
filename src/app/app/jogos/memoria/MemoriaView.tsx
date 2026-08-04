@@ -5,6 +5,7 @@ import type { RealtimeChannel } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import { startGame, flipCard, getGame, type MemoryGame } from "./actions";
 import { useDeviceMode } from "../GameShell";
+import { GameRules } from "../GameRules";
 
 const CHANNEL = "orbita-memoria";
 
@@ -88,6 +89,14 @@ export function MemoriaView({ otherUserName }: { otherUserName: string }) {
             você {game.scoreMine} × {game.scoreOther} {otherUserName}
           </p>
         )}
+        <GameRules
+          items={[
+            "A grade tem pares de símbolos escondidos.",
+            "Na sua vez, vire duas cartas. Se formarem um par, você marca ponto e joga de novo.",
+            "Se não formarem par, elas ficam visíveis até a próxima jogada e a vez passa.",
+            "Quem tiver mais pares quando a grade acabar, vence.",
+          ]}
+        />
         <button
           type="button"
           onClick={handleStart}

@@ -5,6 +5,7 @@ import type { RealtimeChannel } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import { createGame, guessLetter, getGame, type HangmanGame } from "./actions";
 import { useDeviceMode } from "../GameShell";
+import { GameRules } from "../GameRules";
 
 const MOON_STAGES = ["🌑", "🌒", "🌓", "🌔", "🌕", "🌖", "🌗"];
 const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
@@ -100,6 +101,17 @@ export function JogoView({
             <p className="text-[10px] text-ink-muted">tema: {game.theme}</p>
           )}
         </div>
+      )}
+
+      {showCreateForm && (
+        <GameRules
+          items={[
+            "Quem cria pensa numa palavra secreta (e pode escolher um tema).",
+            "O outro tenta adivinhar uma letra por vez.",
+            "Cada letra errada custa uma chance — a lua vai enchendo a cada erro.",
+            "Descobrir a palavra antes das chances acabarem = vitória.",
+          ]}
+        />
       )}
 
       {showCreateForm && (

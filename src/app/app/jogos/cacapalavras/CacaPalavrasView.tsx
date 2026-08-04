@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { WORDSEARCH_THEMES, type Difficulty } from "@/lib/wordsearch";
 import { startGame, foundWord, getGame, type WordSearchGame } from "./actions";
 import { useDeviceMode } from "../GameShell";
+import { GameRules } from "../GameRules";
 
 const CHANNEL = "orbita-cacapalavras";
 const THEMES = Object.keys(WORDSEARCH_THEMES);
@@ -144,6 +145,17 @@ export function CacaPalavrasView({ otherUserName }: { otherUserName: string }) {
             </p>
           )}
         </div>
+      )}
+
+      {showStart && (
+        <GameRules
+          items={[
+            "Escolham modo, tema e dificuldade antes de começar.",
+            "Pra marcar uma palavra, toque na primeira letra e depois na última — precisa formar uma reta (horizontal, vertical ou diagonal, conforme a dificuldade).",
+            "Cooperativo: os dois veem a mesma grade, quem achar marca pra ambos.",
+            "Corrida: cada um joga na própria cópia; no final comparam quem encontrou tudo primeiro.",
+          ]}
+        />
       )}
 
       {showStart && (

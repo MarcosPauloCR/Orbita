@@ -5,6 +5,7 @@ import type { RealtimeChannel } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import { addLine, getStory, type StoryLine } from "./actions";
 import { useDeviceMode } from "../GameShell";
+import { GameRules } from "../GameRules";
 
 const CHANNEL = "orbita-historia";
 
@@ -76,6 +77,16 @@ export function HistoriaView({
       <p className="text-[10px] uppercase tracking-wide text-ink-muted">
         continue a história
       </p>
+
+      {lines.length === 0 && (
+        <GameRules
+          items={[
+            "Um de vocês escreve a primeira frase.",
+            "Alternando, cada um vai continuando a história com uma frase por vez.",
+            "Não tem fim definido — sigam até onde quiserem e revejam depois.",
+          ]}
+        />
+      )}
 
       <div
         className={`flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto rounded-2xl border border-hairline bg-surface p-4 ${

@@ -13,6 +13,7 @@ import {
   type DuoCategory,
 } from "./actions";
 import { useDeviceMode } from "../GameShell";
+import { GameRules } from "../GameRules";
 
 const CATEGORY_CONFIG: Record<
   DuoCategory,
@@ -24,6 +25,7 @@ const CATEGORY_CONFIG: Record<
     needsJudgment: boolean;
     responseLabel: string;
     answerPlaceholder: string;
+    rules: string[];
   }
 > = {
   trivia: {
@@ -34,6 +36,11 @@ const CATEGORY_CONFIG: Record<
     needsJudgment: true,
     responseLabel: "seu palpite",
     answerPlaceholder: "sua resposta verdadeira (fica escondida até ela responder)",
+    rules: [
+      "Você escreve uma pergunta sobre si mesmo e sua resposta verdadeira (fica escondida).",
+      "A outra pessoa tenta adivinhar o que você respondeu.",
+      "Depois que ela responder, você avalia se acertou — o placar vai somando com o tempo.",
+    ],
   },
   emoji: {
     channel: "orbita-duo-emoji",
@@ -43,6 +50,11 @@ const CATEGORY_CONFIG: Record<
     needsJudgment: true,
     responseLabel: "seu palpite",
     answerPlaceholder: "",
+    rules: [
+      "Você manda uma sequência de emojis representando um filme, música ou frase.",
+      "A outra pessoa tenta decifrar o que os emojis significam.",
+      "Você avalia se o palpite bateu com o que você quis dizer.",
+    ],
   },
   dare: {
     channel: "orbita-duo-dare",
@@ -52,6 +64,11 @@ const CATEGORY_CONFIG: Record<
     needsJudgment: false,
     responseLabel: "sua resposta",
     answerPlaceholder: "",
+    rules: [
+      "Escreva uma pergunta (verdade) ou um desafio pra outra pessoa.",
+      "Ela responde ou cumpre o desafio, sem prazo definido.",
+      "Não tem placar aqui — é só pra descontrair.",
+    ],
   },
 };
 
@@ -190,6 +207,8 @@ export function DuoGameView({
           )}
         </div>
       )}
+
+      {showStart && <GameRules items={config.rules} />}
 
       {showStart && (
         <form onSubmit={handleStart} className="flex flex-col gap-2">

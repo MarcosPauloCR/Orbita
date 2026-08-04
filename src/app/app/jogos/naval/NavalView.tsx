@@ -11,6 +11,7 @@ import {
   type BattleshipGame,
 } from "./actions";
 import { useDeviceMode } from "../GameShell";
+import { GameRules } from "../GameRules";
 
 const CHANNEL = "orbita-naval";
 const SHIP_COUNT = 3;
@@ -114,6 +115,13 @@ export function NavalView({ otherUserName }: { otherUserName: string }) {
               : `${otherUserName} venceu`}
           </p>
         )}
+        <GameRules
+          items={[
+            "Cada um esconde 3 navios (1 célula cada) numa grade 4x4, sem o outro ver.",
+            "Por turnos, vocês atiram em células da grade do outro tentando acertar.",
+            "🔥 marca acerto, • marca água. Quem afundar os 3 navios do outro primeiro vence.",
+          ]}
+        />
         <button
           type="button"
           onClick={handleStart}
