@@ -1,11 +1,30 @@
 import webpush from "web-push";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-webpush.setVapidDetails(
-  process.env.VAPID_SUBJECT!,
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
-  process.env.VAPID_PRIVATE_KEY!
-);
+let vapidReady = false;
+
+// Configurado sob demanda (não no carregamento do módulo) pra uma variável
+// de ambiente faltando/errada não derrubar Server Actions que só usam push
+// como efeito colateral (ex: avisar quando uma cápsula é aberta) — nesse
+// caso a notificação é só pulada, sem quebrar a ação principal.
+function ensureVapidConfigured(): boolean {
+  if (vapidReady) return true;
+
+  const subject = process.env.VAPID_SUBJECT;
+  const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+  const privateKey = process.env.VAPID_PRIVATE_KEY;
+
+  if (!subject || !publicKey || !privateKey) {
+    console.error(
+      "Push desativado: VAPID_SUBJECT, VAPID_PRIVATE_KEY ou NEXT_PUBLIC_VAPID_PUBLIC_KEY ausente."
+    );
+    return false;
+  }
+
+  webpush.setVapidDetails(subject, publicKey, privateKey);
+  vapidReady = true;
+  return true;
+}
 
 export type PushSubscriptionInput = {
   endpoint: string;
@@ -33,6 +52,8 @@ export async function sendPushToUser(
   userId: string,
   payload: { title: string; body: string }
 ): Promise<void> {
+  if (!ensureVapidConfigured()) return;
+
   const supabase = createAdminClient();
   const { data: subs, error } = await supabase
     .from("push_subscriptions")
