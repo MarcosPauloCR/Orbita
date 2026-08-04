@@ -15,6 +15,7 @@ export type ChatMessage = {
   photo_path: string | null;
   photoUrl: string | null;
   read_at: string | null;
+  delete_requested_by: string | null;
   created_at: string;
 };
 
@@ -24,8 +25,12 @@ type MessageRow = {
   content: string | null;
   photo_path: string | null;
   read_at: string | null;
+  delete_requested_by: string | null;
   created_at: string;
 };
+
+const MESSAGE_COLUMNS =
+  "id, from_user, content, photo_path, read_at, delete_requested_by, created_at";
 
 async function withPhotoUrl(row: MessageRow): Promise<ChatMessage> {
   let photoUrl: string | null = null;
@@ -44,6 +49,7 @@ async function withPhotoUrl(row: MessageRow): Promise<ChatMessage> {
     photo_path: row.photo_path,
     photoUrl,
     read_at: row.read_at,
+    delete_requested_by: row.delete_requested_by,
     created_at: row.created_at,
   };
 }
@@ -55,7 +61,7 @@ export async function getMessages(): Promise<ChatMessage[]> {
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("messages")
-    .select("id, from_user, content, photo_path, read_at, created_at")
+    .select(MESSAGE_COLUMNS)
     .order("created_at", { ascending: true })
     .limit(200);
 
@@ -76,7 +82,7 @@ export async function sendMessage(
   const { data, error } = await supabase
     .from("messages")
     .insert({ from_user: session.userId, content: trimmed })
-    .select("id, from_user, content, photo_path, read_at, created_at")
+    .select(MESSAGE_COLUMNS)
     .single();
 
   if (error || !data) return fail(`Falha ao enviar mensagem: ${error?.message}`);
@@ -116,7 +122,7 @@ export async function sendPhotoMessage(
   const { data, error } = await supabase
     .from("messages")
     .insert({ from_user: session.userId, photo_path: path })
-    .select("id, from_user, content, photo_path, read_at, created_at")
+    .select(MESSAGE_COLUMNS)
     .single();
 
   if (error || !data) return fail(`Falha ao salvar mensagem: ${error?.message}`);
@@ -135,4 +141,72 @@ export async function markMessagesRead(ids: string[]): Promise<void> {
     .in("id", ids)
     .neq("from_user", session.userId)
     .is("read_at", null);
+}
+
+// Apagar uma mensagem exige o "sim" da outra pessoa — ninguém apaga
+// sozinho. requestDeleteMessage só marca o pedido; a linha só some do
+// banco de fato em approveDeleteMessage, e só quem NÃO pediu pode chamar.
+
+export async function requestDeleteMessage(
+  id: string
+): Promise<ActionResult<ChatMessage>> {
+  const session = await getSession();
+  if (!session) return fail("Sessão expirada.");
+
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("messages")
+    .update({ delete_requested_by: session.userId })
+    .eq("id", id)
+    .is("delete_requested_by", null)
+    .select(MESSAGE_COLUMNS)
+    .single();
+
+  if (error || !data) return fail("Não foi possível pedir a exclusão.");
+  return ok(await withPhotoUrl(data));
+}
+
+export async function clearDeleteRequest(
+  id: string
+): Promise<ActionResult<ChatMessage>> {
+  const session = await getSession();
+  if (!session) return fail("Sessão expirada.");
+
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("messages")
+    .update({ delete_requested_by: null })
+    .eq("id", id)
+    .select(MESSAGE_COLUMNS)
+    .single();
+
+  if (error || !data) return fail("Falha ao cancelar o pedido.");
+  return ok(await withPhotoUrl(data));
+}
+
+export async function approveDeleteMessage(
+  id: string
+): Promise<ActionResult<null>> {
+  const session = await getSession();
+  if (!session) return fail("Sessão expirada.");
+
+  const supabase = createAdminClient();
+  const { data: row, error } = await supabase
+    .from("messages")
+    .select("id, from_user, photo_path, delete_requested_by")
+    .eq("id", id)
+    .single();
+
+  if (error || !row) return fail("Mensagem não encontrada.");
+  if (!row.delete_requested_by) return fail("Não há pedido de exclusão pendente.");
+  if (row.delete_requested_by === session.userId) {
+    return fail("Quem pediu não pode aprovar o próprio pedido.");
+  }
+
+  if (row.photo_path) {
+    await supabase.storage.from(BUCKET).remove([row.photo_path]);
+  }
+  await supabase.from("messages").delete().eq("id", id);
+
+  return ok(null);
 }

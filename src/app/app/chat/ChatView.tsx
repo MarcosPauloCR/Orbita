@@ -8,6 +8,9 @@ import {
   sendMessage,
   sendPhotoMessage,
   markMessagesRead,
+  requestDeleteMessage,
+  clearDeleteRequest,
+  approveDeleteMessage,
   type ChatMessage,
 } from "./actions";
 
@@ -51,6 +54,22 @@ export function ChatView({
             ids.includes(m.id) ? { ...m, read_at: new Date().toISOString() } : m
           )
         );
+      })
+      .on("broadcast", { event: "delete-request" }, ({ payload }) => {
+        const message = payload as ChatMessage;
+        setMessages((prev) =>
+          prev.map((m) => (m.id === message.id ? message : m))
+        );
+      })
+      .on("broadcast", { event: "delete-cleared" }, ({ payload }) => {
+        const message = payload as ChatMessage;
+        setMessages((prev) =>
+          prev.map((m) => (m.id === message.id ? message : m))
+        );
+      })
+      .on("broadcast", { event: "delete-approved" }, ({ payload }) => {
+        const { id } = payload as { id: string };
+        setMessages((prev) => prev.filter((m) => m.id !== id));
       })
       .subscribe();
 
@@ -131,6 +150,48 @@ export function ChatView({
     }
   }
 
+  async function handleRequestDelete(id: string) {
+    const result = await requestDeleteMessage(id);
+    if (!result.ok) {
+      alert(result.error);
+      return;
+    }
+    setMessages((prev) => prev.map((m) => (m.id === id ? result.data : m)));
+    channelRef.current?.send({
+      type: "broadcast",
+      event: "delete-request",
+      payload: result.data,
+    });
+  }
+
+  async function handleClearDeleteRequest(id: string) {
+    const result = await clearDeleteRequest(id);
+    if (!result.ok) {
+      alert(result.error);
+      return;
+    }
+    setMessages((prev) => prev.map((m) => (m.id === id ? result.data : m)));
+    channelRef.current?.send({
+      type: "broadcast",
+      event: "delete-cleared",
+      payload: result.data,
+    });
+  }
+
+  async function handleApproveDelete(id: string) {
+    const result = await approveDeleteMessage(id);
+    if (!result.ok) {
+      alert(result.error);
+      return;
+    }
+    setMessages((prev) => prev.filter((m) => m.id !== id));
+    channelRef.current?.send({
+      type: "broadcast",
+      event: "delete-approved",
+      payload: { id },
+    });
+  }
+
   return (
     <div className="flex h-full w-full max-w-sm flex-1 flex-col">
       <div className="flex items-center justify-between border-b border-hairline pb-3">
@@ -150,13 +211,17 @@ export function ChatView({
       <div className="flex-1 space-y-2 overflow-y-auto py-4">
         {messages.map((m) => {
           const isMine = m.from_user === currentUserId;
+          const requestedByMe = m.delete_requested_by === currentUserId;
+          const requestedByOther =
+            !!m.delete_requested_by && !requestedByMe;
+
           return (
             <div
               key={m.id}
-              className={`flex ${isMine ? "justify-end" : "justify-start"}`}
+              className={`flex flex-col ${isMine ? "items-end" : "items-start"}`}
             >
               <div
-                className={`max-w-[75%] rounded-2xl px-4 py-2 text-sm ${
+                className={`relative max-w-[75%] rounded-2xl px-4 py-2 text-sm ${
                   isMine ? "bg-moon text-btn-ink" : "bg-surface text-ink"
                 }`}
               >
@@ -175,7 +240,47 @@ export function ChatView({
                     {m.read_at ? "✓✓ visto" : "✓ enviado"}
                   </p>
                 )}
+                {!m.delete_requested_by && (
+                  <button
+                    type="button"
+                    onClick={() => handleRequestDelete(m.id)}
+                    className="absolute -top-2 rounded-full bg-black/50 px-1.5 py-0.5 text-[9px] text-white"
+                    style={{ [isMine ? "left" : "right"]: "-8px" }}
+                  >
+                    🗑
+                  </button>
+                )}
               </div>
+
+              {requestedByMe && (
+                <div className="mt-1 flex items-center gap-2 text-[10px] text-ink-muted">
+                  <span>aguardando {otherUserName} confirmar exclusão…</span>
+                  <button
+                    onClick={() => handleClearDeleteRequest(m.id)}
+                    className="underline underline-offset-2"
+                  >
+                    cancelar
+                  </button>
+                </div>
+              )}
+
+              {requestedByOther && (
+                <div className="mt-1 flex items-center gap-2 text-[10px] text-ink-muted">
+                  <span>{otherUserName} quer apagar essa mensagem</span>
+                  <button
+                    onClick={() => handleApproveDelete(m.id)}
+                    className="underline underline-offset-2"
+                  >
+                    permitir
+                  </button>
+                  <button
+                    onClick={() => handleClearDeleteRequest(m.id)}
+                    className="underline underline-offset-2"
+                  >
+                    recusar
+                  </button>
+                </div>
+              )}
             </div>
           );
         })}

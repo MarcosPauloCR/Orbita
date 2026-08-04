@@ -7,6 +7,7 @@ import {
   sharePhoto,
   markPhotosSeen,
   viewDisappearingPhoto,
+  deletePhoto,
   type PhotoUpdate,
 } from "./actions";
 
@@ -58,6 +59,10 @@ export function PhotoFeed({
             p.id === id ? { ...p, read_at: new Date().toISOString() } : p
           )
         );
+      })
+      .on("broadcast", { event: "photo-deleted" }, ({ payload }) => {
+        const { id } = payload as { id: string };
+        setPhotos((prev) => prev.filter((p) => p.id !== id));
       })
       .subscribe();
 
@@ -122,6 +127,22 @@ export function PhotoFeed({
     }
   }
 
+  async function handleDelete(id: string) {
+    if (!confirm("Apagar essa foto? Não tem como desfazer.")) return;
+
+    const result = await deletePhoto(id);
+    if (!result.ok) {
+      alert(result.error);
+      return;
+    }
+    setPhotos((prev) => prev.filter((p) => p.id !== id));
+    channelRef.current?.send({
+      type: "broadcast",
+      event: "photo-deleted",
+      payload: { id },
+    });
+  }
+
   return (
     <div className="flex w-full max-w-sm flex-1 flex-col">
       <form
@@ -174,32 +195,45 @@ export function PhotoFeed({
           const locked = !photo.url;
 
           return (
-            <button
+            <div
               key={photo.id}
-              type="button"
-              onClick={() => {
-                if (locked) {
-                  if (!isMine) handleReveal(photo.id);
-                  return;
-                }
-                setViewerUrl(photo.url);
-              }}
               className="relative aspect-square overflow-hidden rounded-xl border border-hairline bg-surface"
             >
-              {locked ? (
-                <span className="flex h-full w-full items-center justify-center px-2 text-center text-xs text-ink-muted">
-                  {revealingId === photo.id ? "abrindo…" : "🔥 toque para ver"}
-                </span>
-              ) : (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={photo.url!} alt="" className="h-full w-full object-cover" />
-              )}
+              <button
+                type="button"
+                onClick={() => {
+                  if (locked) {
+                    if (!isMine) handleReveal(photo.id);
+                    return;
+                  }
+                  setViewerUrl(photo.url);
+                }}
+                className="absolute inset-0"
+              >
+                {locked ? (
+                  <span className="flex h-full w-full items-center justify-center px-2 text-center text-xs text-ink-muted">
+                    {revealingId === photo.id ? "abrindo…" : "🔥 toque para ver"}
+                  </span>
+                ) : (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={photo.url!} alt="" className="h-full w-full object-cover" />
+                )}
+              </button>
               {isMine && (
-                <span className="absolute bottom-1 right-1 rounded-full bg-black/50 px-1.5 py-0.5 text-[9px] text-white">
-                  {photo.read_at ? "vista" : photo.disappearing ? "aguardando" : "enviada"}
-                </span>
+                <>
+                  <span className="pointer-events-none absolute bottom-1 right-1 rounded-full bg-black/50 px-1.5 py-0.5 text-[9px] text-white">
+                    {photo.read_at ? "vista" : photo.disappearing ? "aguardando" : "enviada"}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(photo.id)}
+                    className="absolute left-1 top-1 rounded-full bg-black/50 px-1.5 py-0.5 text-[9px] text-white"
+                  >
+                    🗑
+                  </button>
+                </>
               )}
-            </button>
+            </div>
           );
         })}
       </div>

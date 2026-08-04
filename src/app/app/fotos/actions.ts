@@ -180,3 +180,28 @@ export async function viewDisappearingPhoto(
 
   return ok(signed?.signedUrl ?? "");
 }
+
+export async function deletePhoto(id: string): Promise<ActionResult<null>> {
+  const session = await getSession();
+  if (!session) return fail("Sessão expirada.");
+
+  const supabase = createAdminClient();
+  const { data: row, error } = await supabase
+    .from("updates")
+    .select("id, from_user, content")
+    .eq("id", id)
+    .eq("type", "photo")
+    .single();
+
+  if (error || !row) return fail("Foto não encontrada.");
+  if (row.from_user !== session.userId) {
+    return fail("Você só pode apagar fotos que você enviou.");
+  }
+
+  if (row.content) {
+    await supabase.storage.from(BUCKET).remove([row.content]);
+  }
+  await supabase.from("updates").delete().eq("id", id);
+
+  return ok(null);
+}

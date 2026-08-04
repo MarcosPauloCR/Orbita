@@ -97,6 +97,11 @@ alter table messages enable row level security;
 -- Sem policies para anon/authenticated: histórico é lido via Server
 -- Component autenticado (service role); a entrega ao vivo é só Broadcast.
 
+-- Apagar mensagem exige o "sim" da outra pessoa: quem quer apagar só marca
+-- o pedido aqui; a linha só é removida de verdade em approveDeleteMessage,
+-- chamado por quem NÃO fez o pedido.
+alter table messages add column if not exists delete_requested_by text references users (id);
+
 -- Cápsula do tempo: mensagem/foto que só pode ser aberta a partir de
 -- `unlock_at`. De propósito não tem coluna nem policy que permita UPDATE de
 -- conteúdo ou DELETE pelo client — a trava é estrutural, não só de UI: quem
