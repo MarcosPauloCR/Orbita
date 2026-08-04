@@ -32,9 +32,11 @@ function formatDate(iso: string): string {
 
 export function CapsuleView({
   currentUserId,
+  userNames,
   initialCapsules,
 }: {
   currentUserId: string;
+  userNames: Record<string, string>;
   initialCapsules: Capsule[];
 }) {
   const [capsules, setCapsules] = useState<Capsule[]>(initialCapsules);
@@ -170,7 +172,11 @@ export function CapsuleView({
                     <p className="text-sm text-ink">{capsule.message}</p>
                   )}
                   <p className="text-[10px] text-ink-muted">
-                    aberta em {formatDate(capsule.opened_at!)}
+                    aberta por{" "}
+                    {capsule.opened_by === currentUserId
+                      ? "você"
+                      : userNames[capsule.opened_by ?? ""] ?? "alguém"}{" "}
+                    em {formatDate(capsule.opened_at!)}
                   </p>
                 </div>
               )}

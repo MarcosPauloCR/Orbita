@@ -113,6 +113,10 @@ create table if not exists capsules (
   constraint capsules_has_content check (message is not null or photo_path is not null)
 );
 
+-- Quem efetivamente clicou em "abrir" (pode ser diferente de quem enviou,
+-- já que hoje qualquer um dos dois pode abrir depois do prazo).
+alter table capsules add column if not exists opened_by text references users (id);
+
 alter table capsules enable row level security;
 
 -- Sem policies para anon/authenticated: só a service role lê/grava, e as

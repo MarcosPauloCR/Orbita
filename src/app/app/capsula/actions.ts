@@ -14,6 +14,7 @@ export type Capsule = {
   from_user: string;
   unlock_at: string;
   opened_at: string | null;
+  opened_by: string | null;
   created_at: string;
   message: string | null;
   photoUrl: string | null;
@@ -26,6 +27,7 @@ type CapsuleRow = {
   photo_path: string | null;
   unlock_at: string;
   opened_at: string | null;
+  opened_by: string | null;
   created_at: string;
 };
 
@@ -46,6 +48,7 @@ async function toCapsule(row: CapsuleRow): Promise<Capsule> {
     from_user: row.from_user,
     unlock_at: row.unlock_at,
     opened_at: row.opened_at,
+    opened_by: row.opened_by,
     created_at: row.created_at,
     message: opened ? row.message : null,
     photoUrl,
@@ -60,7 +63,7 @@ export async function getCapsules(): Promise<Capsule[]> {
   const { data, error } = await supabase
     .from("capsules")
     .select(
-      "id, from_user, message, photo_path, unlock_at, opened_at, created_at"
+      "id, from_user, message, photo_path, unlock_at, opened_at, opened_by, created_at"
     )
     .order("unlock_at", { ascending: true });
 
@@ -130,7 +133,7 @@ export async function openCapsule(id: string): Promise<ActionResult<Capsule>> {
   const { data: row, error } = await supabase
     .from("capsules")
     .select(
-      "id, from_user, message, photo_path, unlock_at, opened_at, created_at"
+      "id, from_user, message, photo_path, unlock_at, opened_at, opened_by, created_at"
     )
     .eq("id", id)
     .single();
@@ -142,9 +145,10 @@ export async function openCapsule(id: string): Promise<ActionResult<Capsule>> {
 
   if (!row.opened_at) {
     row.opened_at = new Date().toISOString();
+    row.opened_by = session.userId;
     await supabase
       .from("capsules")
-      .update({ opened_at: row.opened_at })
+      .update({ opened_at: row.opened_at, opened_by: row.opened_by })
       .eq("id", id);
 
     if (row.from_user !== session.userId) {
