@@ -11,7 +11,13 @@ type UserRow = AppUser & { password_hash: string };
 export async function getPublicUsers(): Promise<AppUser[]> {
   const supabase = createAdminClient();
   const { data, error } = await supabase.from("users").select("id, name");
-  if (error) throw error;
+  // Lida sem exceção de propósito: isso roda em Server Components (layout,
+  // várias páginas) em toda navegação — um erro aqui não pode derrubar a
+  // tela inteira com uma página em branco, então degrada pra lista vazia.
+  if (error) {
+    console.error("getPublicUsers falhou:", error.message);
+    return [];
+  }
   return data ?? [];
 }
 
