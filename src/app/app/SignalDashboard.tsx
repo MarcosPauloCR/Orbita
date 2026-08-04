@@ -11,10 +11,10 @@ type HistoryGroup = {
   items: { from_user: string; time: string; type: "normal" | "sos" }[];
 };
 
-function groupByLocalDay(signals: SignalRow[]): HistoryGroup[] {
-  const sorted = [...signals].sort(
-    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-  );
+function groupByLocalDay(signals: SignalRow[], limit: number): HistoryGroup[] {
+  const sorted = [...signals]
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .slice(0, limit);
 
   const today = new Date();
   const yesterday = new Date(today);
@@ -123,7 +123,7 @@ export function SignalDashboard({
     [signals, userIds]
   );
   const { current, next } = useMemo(() => currentTrophy(streak), [streak]);
-  const groups = useMemo(() => groupByLocalDay(signals), [signals]);
+  const groups = useMemo(() => groupByLocalDay(signals, 5), [signals]);
 
   return (
     <div className="flex w-full flex-col items-center gap-6">
@@ -178,7 +178,7 @@ export function SignalDashboard({
 
       <div className="w-full">
         <p className="mb-2 text-[10px] uppercase tracking-wide text-ink-muted">
-          histórico
+          histórico (últimos 5)
         </p>
         <div className="flex flex-col gap-3">
           {groups.length === 0 && (
