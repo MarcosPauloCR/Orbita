@@ -219,6 +219,85 @@ alter table hangman_games enable row level security;
 -- Sem policies para anon/authenticated: só a service role lê/grava, e a
 -- palavra nunca é enviada pro client de quem está adivinhando.
 
+-- Jogo da velha.
+create table if not exists tictactoe_games (
+  id uuid default gen_random_uuid() primary key,
+  player_x text not null references users (id),
+  player_o text not null references users (id),
+  board text not null default '---------', -- 9 posições: X, O ou -
+  turn text not null default 'X' check (turn in ('X', 'O')),
+  status text not null default 'playing' check (status in ('playing', 'won_x', 'won_o', 'draw')),
+  created_at timestamptz default now()
+);
+
+alter table tictactoe_games enable row level security;
+
+-- Batalha naval simplificada: grade 4x4, 3 navios de 1 célula cada.
+create table if not exists battleship_games (
+  id uuid default gen_random_uuid() primary key,
+  player_a text not null references users (id),
+  player_b text not null references users (id),
+  ships_a text, -- células (0-15) separadas por vírgula, null até colocar os navios
+  ships_b text,
+  shots_a text not null default '', -- células que "a" já atirou no tabuleiro de "b"
+  shots_b text not null default '',
+  turn text not null default 'a' check (turn in ('a', 'b')),
+  status text not null default 'setup' check (status in ('setup', 'playing', 'won_a', 'won_b')),
+  created_at timestamptz default now()
+);
+
+alter table battleship_games enable row level security;
+
+-- Jogo da memória (4x4, 8 pares de símbolos temáticos de lua/espaço).
+create table if not exists memory_games (
+  id uuid default gen_random_uuid() primary key,
+  player_a text not null references users (id),
+  player_b text not null references users (id),
+  board text not null, -- 16 símbolos separados por vírgula, ordem embaralhada
+  matched text not null default '', -- índices (0-15) já casados, separados por vírgula
+  flipped text not null default '', -- 0, 1 ou 2 índices virados no momento
+  turn text not null references users (id),
+  score_a int not null default 0,
+  score_b int not null default 0,
+  status text not null default 'playing' check (status in ('playing', 'finished')),
+  created_at timestamptz default now()
+);
+
+alter table memory_games enable row level security;
+
+-- Motor unificado de "pergunta -> resposta -> revelar", usado por três
+-- brincadeiras diferentes (categoria muda o rótulo e o fluxo na UI):
+-- trivia = "quanto você me conhece", emoji = charadas de emoji,
+-- dare = verdade ou desafio.
+create table if not exists duo_games (
+  id uuid default gen_random_uuid() primary key,
+  category text not null check (category in ('trivia', 'emoji', 'dare')),
+  created_by text not null references users (id),
+  responder text not null references users (id),
+  prompt text not null,
+  creator_answer text, -- só em 'trivia': a resposta verdadeira de quem criou
+  response text, -- o palpite (trivia/emoji) ou a resposta/confirmação (dare)
+  judged_correct boolean, -- só em trivia/emoji, autoavaliado por quem criou
+  status text not null default 'awaiting_response'
+    check (status in ('awaiting_response', 'awaiting_judgment', 'done')),
+  created_at timestamptz default now()
+);
+
+alter table duo_games enable row level security;
+
+-- Continue a história: linhas alternadas entre os dois, sem fim definido.
+create table if not exists story_lines (
+  id uuid default gen_random_uuid() primary key,
+  from_user text not null references users (id),
+  content text not null,
+  created_at timestamptz default now()
+);
+
+alter table story_lines enable row level security;
+
+-- Sem policies para anon/authenticated em nenhum jogo novo: só a service
+-- role lê/grava, mesmo padrão de tudo mais no app.
+
 -- Realtime (idempotente: ALTER PUBLICATION não tem IF NOT EXISTS)
 do $$
 begin
