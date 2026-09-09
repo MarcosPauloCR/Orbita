@@ -1,3 +1,47 @@
+function urlBase64ToUint8Array(base64String) {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = atob(base64);
+  const output = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; i++) {
+    output[i] = rawData.charCodeAt(i);
+  }
+  return output;
+}
+
+// O navegador pode invalidar/trocar a inscrição de push sozinho (chaves
+// expiram, troca de conta no navegador, etc.) sem o app estar aberto —
+// sem tratar esse evento, a inscrição antiga morre e as notificações
+// simplesmente param de chegar depois de um tempo, silenciosamente.
+self.addEventListener("pushsubscriptionchange", (event) => {
+  event.waitUntil(
+    (async () => {
+      let applicationServerKey = event.oldSubscription?.options?.applicationServerKey;
+
+      if (!applicationServerKey) {
+        const res = await fetch("/api/push/vapid-public-key");
+        const { key } = await res.json();
+        if (!key) return;
+        applicationServerKey = urlBase64ToUint8Array(key);
+      }
+
+      const subscription =
+        event.newSubscription ??
+        (await self.registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey,
+        }));
+
+      const json = subscription.toJSON();
+      await fetch("/api/push/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ endpoint: json.endpoint, keys: json.keys }),
+      });
+    })()
+  );
+});
+
 self.addEventListener("push", (event) => {
   let payload = {};
   try {

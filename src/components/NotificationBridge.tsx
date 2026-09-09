@@ -16,6 +16,31 @@ function urlBase64ToUint8Array(base64String: string) {
   return output;
 }
 
+// Cria a inscrição se não existir e sempre reenvia pro servidor — cobre
+// tanto o caso do navegador ter perdido a inscrição (comum depois de um
+// tempo, mesmo sem o usuário mexer em nada) quanto o caso da linha ter
+// sumido do banco por algum motivo. Rodar isso toda vez que o app abre
+// (com permissão já concedida) evita depender do usuário perceber que
+// parou de notificar e ter que limpar o cache pra "consertar".
+async function ensureSubscribed() {
+  const registration = await navigator.serviceWorker.ready;
+  let subscription = await registration.pushManager.getSubscription();
+  if (!subscription) {
+    subscription = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(
+        process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!
+      ),
+    });
+  }
+
+  const json = subscription.toJSON();
+  await subscribeToPush({
+    endpoint: json.endpoint!,
+    keys: { p256dh: json.keys!.p256dh, auth: json.keys!.auth },
+  });
+}
+
 export function NotificationBridge() {
   const [status, setStatus] = useState<Status>("checking");
 
@@ -31,8 +56,10 @@ export function NotificationBridge() {
 
     navigator.serviceWorker.register("/sw.js").catch(() => {});
 
-    if (Notification.permission === "granted") setStatus("enabled");
-    else if (Notification.permission === "denied") setStatus("denied");
+    if (Notification.permission === "granted") {
+      setStatus("enabled");
+      ensureSubscribed().catch(() => {});
+    } else if (Notification.permission === "denied") setStatus("denied");
     else setStatus("prompt");
 
     function handleMessage(event: MessageEvent) {
@@ -59,19 +86,7 @@ export function NotificationBridge() {
       return;
     }
 
-    const registration = await navigator.serviceWorker.ready;
-    const subscription = await registration.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(
-        process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!
-      ),
-    });
-
-    const json = subscription.toJSON();
-    await subscribeToPush({
-      endpoint: json.endpoint!,
-      keys: { p256dh: json.keys!.p256dh, auth: json.keys!.auth },
-    });
+    await ensureSubscribed();
     setStatus("enabled");
   }
 
