@@ -332,6 +332,67 @@ alter table wordsearch_games enable row level security;
 -- Sem policies para anon/authenticated em nenhum jogo novo: só a service
 -- role lê/grava, mesmo padrão de tudo mais no app.
 
+-- Compartilhamento de vídeo de comida (ex: achou um vídeo interessante no
+-- Instagram e quer sugerir pra fazer junto). Quem recebe aprova/reprova,
+-- dá uma nota de 0 a 10 e, opcionalmente, sugere uma data pra fazer.
+-- Mesmo padrão de "updates": nada de postgres_changes, entrega ao vivo é
+-- via Broadcast disparado pelo client depois que a Server Action confirma.
+create table if not exists food_shares (
+  id uuid default gen_random_uuid() primary key,
+  from_user text not null references users (id),
+  url text not null,
+  status text not null default 'pending' check (status in ('pending', 'approved', 'rejected')),
+  rating int check (rating between 0 and 10),
+  suggested_date date,
+  decided_at timestamptz,
+  created_at timestamptz default now()
+);
+
+alter table food_shares enable row level security;
+
+-- Sem policies para anon/authenticated: só a service role lê/grava.
+
+-- Cardápio da semana: um prato pra cozinhar em casa, com link de receita
+-- opcional, podendo vir digitado por alguém ou sorteado pelo app. Aprovar
+-- exige escolher o dia (scheduled_day) — isso é o que vira a "agenda" da
+-- semana. made_at marca quando o prato realmente foi feito.
+create table if not exists menu_items (
+  id uuid default gen_random_uuid() primary key,
+  from_user text not null references users (id),
+  dish text not null,
+  recipe_url text,
+  suggested_by_app boolean not null default false,
+  status text not null default 'pending' check (status in ('pending', 'approved', 'rejected')),
+  scheduled_day date,
+  made_at timestamptz,
+  decided_at timestamptz,
+  created_at timestamptz default now()
+);
+
+alter table menu_items enable row level security;
+
+-- Sem policies para anon/authenticated: só a service role lê/grava.
+
+-- Filmes/séries pra assistir: mesma mecânica de aprovar/reprovar + nota de
+-- 0 a 10 dos vídeos de comida, mas sem sugestão de data. watched_at marca
+-- "já assistido" (também usado pra não repetir sugestão do app).
+create table if not exists movie_shares (
+  id uuid default gen_random_uuid() primary key,
+  from_user text not null references users (id),
+  title text not null,
+  link_url text,
+  suggested_by_app boolean not null default false,
+  status text not null default 'pending' check (status in ('pending', 'approved', 'rejected')),
+  rating int check (rating between 0 and 10),
+  watched_at timestamptz,
+  decided_at timestamptz,
+  created_at timestamptz default now()
+);
+
+alter table movie_shares enable row level security;
+
+-- Sem policies para anon/authenticated: só a service role lê/grava.
+
 -- Realtime (idempotente: ALTER PUBLICATION não tem IF NOT EXISTS)
 do $$
 begin

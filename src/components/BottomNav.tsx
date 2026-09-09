@@ -7,6 +7,7 @@ const TABS = [
   { href: "/app", label: "Sinal" },
   { href: "/app/chat", label: "Chat" },
   { href: "/app/fotos", label: "Fotos" },
+  { href: "/app/ideias", label: "Ideias" },
   { href: "/app/capsula", label: "Cápsula" },
   { href: "/app/jogos", label: "Jogos" },
 ];
