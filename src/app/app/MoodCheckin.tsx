@@ -83,12 +83,10 @@ export function MoodCheckin({
 
   return (
     <div className="w-full">
-      <p className="mb-2 text-[10px] uppercase tracking-wide text-ink-muted">
-        humor de hoje
-      </p>
+      <p className="section-label mb-2">humor de hoje</p>
 
-      <div className="grid grid-cols-2 gap-2">
-        <div className="rounded-2xl border border-hairline bg-surface p-3">
+      <div className="grid grid-cols-2 gap-3">
+        <div className="card">
           <p className="mb-1 text-[10px] text-ink-muted">você</p>
           {mine && !editing ? (
             <button type="button" onClick={() => setEditing(true)} className="text-left">
@@ -120,13 +118,13 @@ export function MoodCheckin({
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
                 placeholder="algo rápido (opcional)"
-                className="rounded-lg border border-hairline bg-canvas px-2 py-1 text-[11px] text-ink placeholder-ink-muted outline-none"
+                className="input-field !px-2.5 !py-1.5 text-[11px]"
               />
               <button
                 type="button"
                 onClick={handleSave}
                 disabled={isSaving}
-                className="self-start rounded-full bg-moon px-3 py-1 text-[10px] text-btn-ink disabled:opacity-50"
+                className="btn-primary self-start !px-3 !py-1.5 !text-[10px]"
               >
                 {isSaving ? "salvando…" : "salvar"}
               </button>
@@ -134,7 +132,7 @@ export function MoodCheckin({
           )}
         </div>
 
-        <div className="rounded-2xl border border-hairline bg-surface p-3">
+        <div className="card">
           <p className="mb-1 text-[10px] text-ink-muted">{otherUserName}</p>
           {other ? (
             <>
@@ -152,7 +150,7 @@ export function MoodCheckin({
         </div>
       </div>
 
-      <div className="mt-2 flex items-end justify-between gap-1 rounded-2xl border border-hairline bg-surface p-3">
+      <div className="card mt-3 flex items-end justify-between gap-1">
         {days.map((day) => {
           const entries = historyByDay.get(day) ?? [];
           const mineEntry = entries.find((e) => e.from_user === currentUserId);

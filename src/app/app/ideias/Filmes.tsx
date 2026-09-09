@@ -40,14 +40,14 @@ function ReviewForm({
   }
 
   return (
-    <div className="flex flex-col gap-2 border-t border-hairline pt-2">
+    <div className="flex flex-col gap-3 border-t border-hairline pt-3">
       <StarPicker value={rating} onChange={setRating} />
       <div className="flex gap-2">
         <button
           type="button"
           disabled={submitting}
           onClick={() => decide("approved")}
-          className="rounded-full bg-moon px-3 py-1.5 text-xs text-btn-ink disabled:opacity-50"
+          className="btn-primary"
         >
           👍 aprovar
         </button>
@@ -55,7 +55,7 @@ function ReviewForm({
           type="button"
           disabled={submitting}
           onClick={() => decide("rejected")}
-          className="rounded-full border border-hairline px-3 py-1.5 text-xs text-ink disabled:opacity-50"
+          className="btn-secondary"
         >
           👎 reprovar
         </button>
@@ -94,8 +94,9 @@ function ShareCard({
     }
   }
 
+  const approved = share.status === "approved";
   return (
-    <div className="flex flex-col gap-2 rounded-xl border border-hairline bg-surface p-3">
+    <div className="card flex flex-col gap-3">
       <div className="flex items-center justify-between gap-2">
         <div className="flex flex-col">
           <span className="text-xs text-ink">
@@ -107,9 +108,10 @@ function ShareCard({
               href={share.link_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[10px] text-ink-muted underline underline-offset-2"
+              className="mt-0.5 w-fit text-[10px]"
+              style={{ color: "var(--accent)" }}
             >
-              ver trailer/sinopse
+              ver trailer/sinopse ↗
             </a>
           )}
         </div>
@@ -117,7 +119,7 @@ function ShareCard({
           <button
             type="button"
             onClick={() => onDelete(share.id)}
-            className="text-[10px] text-ink-muted"
+            className="flex h-7 w-7 items-center justify-center rounded-full text-ink-muted transition hover:bg-danger-soft hover:text-danger"
           >
             🗑
           </button>
@@ -126,27 +128,31 @@ function ShareCard({
 
       {share.status === "pending" ? (
         isMine ? (
-          <span className="text-xs text-ink-muted">aguardando avaliação</span>
+          <span className="chip w-fit">aguardando avaliação</span>
         ) : (
           <ReviewForm share={share} onDone={onReviewed} />
         )
       ) : (
-        <div className="flex flex-col gap-1">
-          <span className="text-xs text-ink">
-            {share.status === "approved" ? "✅ aprovado" : "❌ reprovado"}
+        <div className="flex flex-col gap-1.5">
+          <span
+            className="inline-flex w-fit items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-medium"
+            style={{
+              color: approved ? "var(--accent)" : "var(--danger)",
+              background: approved ? "var(--accent-soft)" : "var(--danger-soft)",
+            }}
+          >
+            {approved ? "✅ aprovado" : "❌ reprovado"}
           </span>
           {share.rating !== null && (
             <span className="text-xs text-ink-muted">nota: {share.rating}/10</span>
           )}
-          {share.status === "approved" && share.watched_at && (
-            <span className="text-xs text-ink-muted">🎬 já assistido</span>
-          )}
-          {share.status === "approved" && !share.watched_at && (
+          {approved && share.watched_at && <span className="chip w-fit">🎬 já assistido</span>}
+          {approved && !share.watched_at && (
             <button
               type="button"
               disabled={marking}
               onClick={handleWatched}
-              className="self-start rounded-full border border-hairline px-3 py-1 text-[10px] text-ink disabled:opacity-50"
+              className="btn-secondary self-start !px-3 !py-1.5 !text-[10px]"
             >
               🎬 marcar como já assistido
             </button>
@@ -255,26 +261,26 @@ export function Filmes({
 
   return (
     <div className="flex flex-col gap-4">
-      <form onSubmit={handleSubmit} className="flex flex-col gap-2">
+      <form onSubmit={handleSubmit} className="card-flush flex flex-col gap-2 p-3">
         <input
           type="text"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="nome do filme/série"
-          className="rounded-lg border border-hairline bg-surface px-3 py-2 text-xs text-ink"
+          className="input-field"
         />
         <input
           type="url"
           value={linkUrl}
           onChange={(e) => setLinkUrl(e.target.value)}
           placeholder="link de trailer/sinopse (opcional)"
-          className="rounded-lg border border-hairline bg-surface px-3 py-2 text-xs text-ink"
+          className="input-field"
         />
         <div className="flex gap-2">
           <button
             type="submit"
             disabled={isSending || !title.trim()}
-            className="rounded-full bg-moon px-4 py-2 text-xs text-btn-ink disabled:opacity-50"
+            className="btn-primary"
           >
             {isSending ? "enviando…" : "adicionar"}
           </button>
@@ -282,7 +288,7 @@ export function Filmes({
             type="button"
             disabled={isSuggesting}
             onClick={handleSuggest}
-            className="rounded-full border border-hairline px-4 py-2 text-xs text-ink disabled:opacity-50"
+            className="btn-secondary"
           >
             {isSuggesting ? "sorteando…" : "🤖 sugestão do app"}
           </button>
@@ -295,7 +301,7 @@ export function Filmes({
 
       {pending.length > 0 && (
         <div className="flex flex-col gap-2">
-          <h3 className="text-xs font-semibold text-ink-muted">pendentes</h3>
+          <h3 className="section-label">pendentes</h3>
           {pending.map((share) => (
             <ShareCard
               key={share.id}
@@ -311,7 +317,7 @@ export function Filmes({
 
       {toWatch.length > 0 && (
         <div className="flex flex-col gap-2">
-          <h3 className="text-xs font-semibold text-ink-muted">pra assistir</h3>
+          <h3 className="section-label">pra assistir</h3>
           {toWatch.map((share) => (
             <ShareCard
               key={share.id}
@@ -327,7 +333,7 @@ export function Filmes({
 
       {history.length > 0 && (
         <div className="flex flex-col gap-2">
-          <h3 className="text-xs font-semibold text-ink-muted">histórico</h3>
+          <h3 className="section-label">histórico</h3>
           {history.map((share) => (
             <ShareCard
               key={share.id}

@@ -31,17 +31,23 @@ export function IdeiasView({
 
   return (
     <div className="flex w-full max-w-sm flex-1 flex-col min-h-0 overflow-y-auto">
-      <div className="mb-3 flex gap-1 border-b border-hairline pb-3">
+      <div className="glass mb-4 flex gap-1 rounded-full p-1.5">
         {CATEGORIES.map((c) => (
           <button
             key={c.key}
             type="button"
             onClick={() => setCategory(c.key)}
-            className={`rounded-full px-3 py-1.5 text-xs transition ${
-              category === c.key
-                ? "bg-moon text-btn-ink"
-                : "border border-hairline text-ink-muted"
+            className={`flex-1 rounded-full px-2 py-2 text-xs font-medium transition-all duration-300 ${
+              category === c.key ? "text-btn-ink" : "text-ink-muted hover:text-ink"
             }`}
+            style={
+              category === c.key
+                ? {
+                    background: "linear-gradient(135deg, var(--moon-a), var(--moon-b))",
+                    boxShadow: "0 8px 18px -8px var(--glow-color)",
+                  }
+                : undefined
+            }
           >
             {c.label}
           </button>

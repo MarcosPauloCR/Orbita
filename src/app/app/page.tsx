@@ -56,7 +56,7 @@ export default async function AppPage() {
   return (
     <div className="flex w-full max-w-sm min-h-0 flex-1 flex-col gap-8 overflow-y-auto pb-4">
       {anniversaries.length > 0 && (
-        <div className="flex flex-col gap-1 rounded-2xl border border-hairline bg-surface p-3">
+        <div className="card flex flex-col gap-1">
           {anniversaries.map((a, i) => (
             <p key={i} className="text-xs text-ink">
               🎉 hoje faz{" "}

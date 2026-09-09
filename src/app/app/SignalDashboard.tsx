@@ -162,7 +162,10 @@ export function SignalDashboard({
         <button
           onClick={handleClick}
           disabled={isPending}
-          className="flex h-40 w-40 flex-col items-center justify-center rounded-full border border-hairline bg-moon text-center font-display text-lg text-btn-ink shadow-[0_0_50px_-12px] shadow-moon/40 transition duration-300 hover:scale-105 hover:brightness-95 active:scale-95 disabled:opacity-70"
+          className="animate-glow flex h-40 w-40 flex-col items-center justify-center gap-0.5 rounded-full text-center font-display text-lg tracking-wide text-btn-ink transition-all duration-300 hover:scale-[1.04] active:scale-95 disabled:opacity-70"
+          style={{
+            background: "linear-gradient(135deg, var(--moon-a), var(--moon-b))",
+          }}
         >
           <span>pensando</span>
           <span>em você</span>
@@ -170,28 +173,23 @@ export function SignalDashboard({
         <p className="h-4 text-xs text-ink-muted">
           {isPending ? "enviando…" : sent ? "enviado ✦" : ""}
         </p>
-        <button
-          type="button"
-          onClick={handleSOS}
-          disabled={isSendingSOS}
-          className="rounded-full border border-red-300 px-3 py-1 text-[11px] text-red-500 disabled:opacity-50"
-        >
+        <button type="button" onClick={handleSOS} disabled={isSendingSOS} className="btn-danger">
           {isSendingSOS ? "enviando…" : "🆘 preciso de você"}
         </button>
       </div>
 
-      <div className="grid w-full grid-cols-2 gap-2">
-        <div className="relative rounded-2xl border border-hairline bg-surface p-3 text-center">
+      <div className="grid w-full grid-cols-2 gap-3">
+        <div className="card text-center">
           {isStreakRecord && streak > 1 && (
-            <span className="absolute right-2 top-2 text-xs" title="seu recorde de sequência">
+            <span className="absolute right-3 top-3 text-xs" title="seu recorde de sequência">
               🏆
             </span>
           )}
-          <p className="text-2xl">{current?.icon ?? "🌑"}</p>
-          <p className="mt-1 text-lg font-semibold text-ink">{streak}</p>
-          <p className="text-[10px] uppercase tracking-wide text-ink-muted">
-            dias seguidos
-          </p>
+          <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full text-xl" style={{ background: "var(--accent-soft)" }}>
+            {current?.icon ?? "🌑"}
+          </div>
+          <p className="mt-2 font-display text-2xl text-ink">{streak}</p>
+          <p className="section-label mt-0.5">dias seguidos</p>
           <p className="mt-1 text-[10px] text-ink-muted">
             {current ? current.name : "comecem hoje"}
           </p>
@@ -201,17 +199,17 @@ export function SignalDashboard({
             </p>
           )}
         </div>
-        <div className="relative rounded-2xl border border-hairline bg-surface p-3 text-center">
+        <div className="card text-center">
           {isDayRecord && (
-            <span className="absolute right-2 top-2 text-xs" title="recorde de sinais no dia">
+            <span className="absolute right-3 top-3 text-xs" title="recorde de sinais no dia">
               🏆
             </span>
           )}
-          <p className="text-2xl">✦</p>
-          <p className="mt-1 text-lg font-semibold text-ink">{total}</p>
-          <p className="text-[10px] uppercase tracking-wide text-ink-muted">
-            sinais no total
-          </p>
+          <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full text-xl" style={{ background: "var(--accent-soft)" }}>
+            ✦
+          </div>
+          <p className="mt-2 font-display text-2xl text-ink">{total}</p>
+          <p className="section-label mt-0.5">sinais no total</p>
           {isDayRecord && (
             <p className="mt-1 text-[9px] text-ink-muted">
               melhor dia: {todayCount} hoje!
@@ -220,19 +218,19 @@ export function SignalDashboard({
         </div>
       </div>
 
-      <div className="w-full rounded-2xl border border-hairline bg-surface p-3 text-center">
-        <p className="text-lg font-semibold text-ink">{completeDaysCount}</p>
-        <p className="text-[10px] uppercase tracking-wide text-ink-muted">
+      <div className="card w-full text-center">
+        <p className="font-display text-2xl text-ink">{completeDaysCount}</p>
+        <p className="section-label mt-0.5">
           dias completos (sinal + humor + pergunta)
         </p>
       </div>
 
-      <ActivityCalendar signals={signals} userIds={userIds} />
+      <div className="card-flush w-full p-4">
+        <ActivityCalendar signals={signals} userIds={userIds} />
+      </div>
 
       <div className="w-full">
-        <p className="mb-2 text-[10px] uppercase tracking-wide text-ink-muted">
-          histórico (últimos 5)
-        </p>
+        <p className="section-label mb-2">histórico (últimos 5)</p>
         <div className="flex flex-col gap-3">
           {groups.length === 0 && (
             <p className="text-xs text-ink-muted">nenhum sinal ainda.</p>
@@ -242,17 +240,17 @@ export function SignalDashboard({
               <p className="mb-1 text-xs font-medium text-ink">
                 {group.label}
               </p>
-              <div className="flex flex-col gap-1">
+              <div className="flex flex-col gap-1.5">
                 {group.items.map((item, i) => (
                   <div
                     key={i}
-                    className="flex items-center justify-between rounded-lg border border-hairline bg-surface px-3 py-1.5 text-xs text-ink-muted"
+                    className="flex items-center justify-between rounded-2xl border border-hairline bg-surface px-3.5 py-2 text-xs text-ink-muted"
                   >
                     <span>
                       {item.type === "sos" ? "🆘 " : ""}
                       {item.from_user === currentUserId ? "você" : otherUserName}
                     </span>
-                    <span className="font-mono">{item.time}</span>
+                    <span className="chip font-mono">{item.time}</span>
                   </div>
                 ))}
               </div>
@@ -263,16 +261,13 @@ export function SignalDashboard({
 
       {received && (
         <div
-          className={`fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm ${
-            received === "sos" ? "bg-red-950/60" : "bg-black/40"
+          className={`fixed inset-0 z-50 flex items-center justify-center backdrop-blur-md ${
+            received === "sos" ? "bg-red-950/50" : "bg-black/40"
           }`}
         >
           <div
-            className={`animate-fade-in mx-4 rounded-3xl border px-8 py-7 text-center shadow-2xl ${
-              received === "sos"
-                ? "border-red-400 bg-surface"
-                : "border-hairline bg-surface"
-            }`}
+            className="animate-fade-in glass mx-4 rounded-[2rem] px-8 py-7 text-center"
+            style={{ boxShadow: "0 30px 70px -20px var(--shadow-color)" }}
           >
             <p className="font-display text-2xl text-ink">
               {received === "sos"

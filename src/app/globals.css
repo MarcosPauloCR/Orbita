@@ -6,36 +6,58 @@
   --background: #ffffff;
   --foreground: #171717;
 
-  /* Tema lua — "céu de dia": cinza pálido, lua como um acento escuro. */
-  --canvas: #eef0f3;
-  --sky-a: #eef0f3;
-  --sky-b: #e2e5ea;
+  /* Tema lua — "céu de dia": parchment quente, lua como acento em tinta. */
+  --canvas: #f4f1ea;
+  --sky-a: #f4f1ea;
+  --sky-b: #e9e1cd;
   --surface: #ffffff;
-  --hairline: #dde0e5;
-  --ink: #20232b;
-  --ink-muted: #6b6f7b;
+  --surface-strong: #faf7ef;
+  --hairline: rgba(32, 35, 43, 0.1);
+  --hairline-strong: rgba(32, 35, 43, 0.18);
+  --ink: #201f1a;
+  --ink-muted: #6b6a63;
   --moon: #20232b;
+  --moon-a: #23262f;
+  --moon-b: #3d414d;
   --moon-body: #cfd3da;
   --btn-ink: #f4f1e6;
   --star: #b7bcc4;
   --crater: rgba(32, 35, 43, 0.08);
+  --accent: #a97e2d;
+  --accent-soft: rgba(169, 126, 45, 0.14);
+  --shadow-color: rgba(32, 35, 43, 0.16);
+  --glow-color: rgba(32, 35, 43, 0.14);
+  --glass-bg: rgba(255, 255, 255, 0.72);
+  --danger: #d1453b;
+  --danger-soft: rgba(209, 69, 59, 0.12);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    /* Tema lua — "céu de noite": chumbo escuro, lua brilhando em creme. */
-    --canvas: #12141a;
-    --sky-a: #14161d;
-    --sky-b: #0e0f14;
-    --surface: #1a1d24;
-    --hairline: #262a33;
-    --ink: #eceef2;
-    --ink-muted: #9195a3;
+    /* Tema lua — "céu de noite": chumbo profundo, lua em champanhe. */
+    --canvas: #0a0b10;
+    --sky-a: #0d0f16;
+    --sky-b: #06070b;
+    --surface: #161821;
+    --surface-strong: #1d202b;
+    --hairline: rgba(255, 255, 255, 0.08);
+    --hairline-strong: rgba(255, 255, 255, 0.15);
+    --ink: #f3f1ea;
+    --ink-muted: #999cae;
     --moon: #f2ecda;
+    --moon-a: #f6eed6;
+    --moon-b: #d9c48a;
     --moon-body: #f2ecda;
-    --btn-ink: #14161a;
+    --btn-ink: #17181c;
     --star: #565c6b;
     --crater: rgba(18, 20, 26, 0.14);
+    --accent: #d9c48a;
+    --accent-soft: rgba(217, 196, 138, 0.16);
+    --shadow-color: rgba(0, 0, 0, 0.6);
+    --glow-color: rgba(217, 196, 138, 0.3);
+    --glass-bg: rgba(18, 20, 27, 0.72);
+    --danger: #f0776d;
+    --danger-soft: rgba(240, 119, 109, 0.14);
   }
 }
 
@@ -43,6 +65,74 @@ body {
   color: var(--foreground);
   background: var(--background);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+@layer components {
+  .glass {
+    background: var(--glass-bg);
+    border: 1px solid var(--hairline-strong);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+
+  .card {
+    @apply relative rounded-3xl border border-hairline bg-surface p-4;
+    box-shadow: 0 16px 36px -20px var(--shadow-color);
+  }
+
+  .card-flush {
+    @apply relative overflow-hidden rounded-3xl border border-hairline bg-surface;
+    box-shadow: 0 16px 36px -20px var(--shadow-color);
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-full px-4 py-2.5 text-xs font-medium text-btn-ink transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:shadow-none;
+    background: linear-gradient(135deg, var(--moon-a), var(--moon-b));
+    box-shadow: 0 10px 24px -10px var(--glow-color);
+  }
+
+  .btn-primary:not(:disabled):hover {
+    transform: translateY(-1px);
+    box-shadow: 0 14px 30px -10px var(--glow-color);
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-full border border-hairline bg-surface-strong px-4 py-2.5 text-xs text-ink transition-all duration-200 active:scale-95 disabled:opacity-50;
+  }
+
+  .btn-secondary:not(:disabled):hover {
+    border-color: var(--hairline-strong);
+    transform: translateY(-1px);
+  }
+
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-medium transition-all duration-200 active:scale-95 disabled:opacity-50;
+    color: var(--danger);
+    border-color: var(--danger-soft);
+    background: var(--danger-soft);
+  }
+
+  .chip {
+    @apply inline-flex items-center gap-1 rounded-full border border-hairline bg-surface-strong px-2.5 py-1 text-[10px] text-ink-muted;
+  }
+
+  .section-label {
+    @apply text-[10px] font-semibold uppercase text-ink-muted;
+    letter-spacing: 0.14em;
+  }
+
+  .input-field {
+    @apply w-full rounded-2xl border border-hairline bg-surface-strong px-3.5 py-2.5 text-xs text-ink outline-none transition-all duration-200;
+  }
+
+  .input-field::placeholder {
+    color: var(--ink-muted);
+  }
+
+  .input-field:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
 }
 
 @layer utilities {
@@ -63,5 +153,19 @@ body {
 
   .animate-fade-in {
     animation: fade-in 0.4s ease-out;
+  }
+
+  @keyframes glow-pulse {
+    0%,
+    100% {
+      box-shadow: 0 0 40px -8px var(--glow-color);
+    }
+    50% {
+      box-shadow: 0 0 64px -6px var(--glow-color);
+    }
+  }
+
+  .animate-glow {
+    animation: glow-pulse 3.5s ease-in-out infinite;
   }
 }

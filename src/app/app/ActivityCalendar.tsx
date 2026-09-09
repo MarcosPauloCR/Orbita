@@ -65,22 +65,22 @@ export function ActivityCalendar({
 
   return (
     <div className="w-full">
-      <div className="mb-2 flex items-center justify-between">
+      <div className="mb-3 flex items-center justify-between">
         <button
           type="button"
           onClick={() => changeMonth(-1)}
-          className="px-2 text-ink-muted"
+          className="flex h-7 w-7 items-center justify-center rounded-full text-ink-muted transition hover:bg-surface-strong hover:text-ink"
           aria-label="mês anterior"
         >
           ‹
         </button>
-        <p className="text-[10px] uppercase tracking-wide text-ink-muted">
+        <p className="section-label">
           {MONTH_NAMES[month]} de {year}
         </p>
         <button
           type="button"
           onClick={() => changeMonth(1)}
-          className="px-2 text-ink-muted"
+          className="flex h-7 w-7 items-center justify-center rounded-full text-ink-muted transition hover:bg-surface-strong hover:text-ink"
           aria-label="próximo mês"
         >
           ›
@@ -99,10 +99,8 @@ export function ActivityCalendar({
         {cells.map((cell, i) => (
           <div
             key={i}
-            className={`flex aspect-square items-center justify-center rounded-md text-[11px] ${
-              cell.key === todayKey
-                ? "border border-hairline"
-                : ""
+            className={`flex aspect-square items-center justify-center rounded-xl text-[11px] transition ${
+              cell.key === todayKey ? "bg-accent-soft" : ""
             } ${cell.day ? "text-ink" : ""}`}
           >
             {cell.day ? (
@@ -114,9 +112,9 @@ export function ActivityCalendar({
         ))}
       </div>
 
-      <div className="mt-2 flex items-center gap-4 text-[9px] text-ink-muted">
-        <span>🌕 os dois mandaram sinal</span>
-        <span>🌒 só um mandou</span>
+      <div className="mt-3 flex items-center gap-2 text-[9px] text-ink-muted">
+        <span className="chip">🌕 os dois mandaram sinal</span>
+        <span className="chip">🌒 só um mandou</span>
       </div>
     </div>
   );

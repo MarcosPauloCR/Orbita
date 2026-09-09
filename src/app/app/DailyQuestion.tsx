@@ -42,10 +42,8 @@ export function DailyQuestion({
 
   return (
     <div className="w-full">
-      <p className="mb-2 text-[10px] uppercase tracking-wide text-ink-muted">
-        {title}
-      </p>
-      <div className="rounded-2xl border border-hairline bg-surface p-4">
+      <p className="section-label mb-2">{title}</p>
+      <div className="card">
         <p className="text-sm text-ink">{state.question}</p>
 
         {state.myAnswer === null ? (
@@ -55,12 +53,12 @@ export function DailyQuestion({
               onChange={(e) => setDraft(e.target.value)}
               rows={2}
               placeholder="sua resposta..."
-              className="resize-none rounded-xl border border-hairline bg-canvas px-3 py-2 text-sm text-ink placeholder-ink-muted outline-none focus:border-ink-muted"
+              className="input-field resize-none !text-sm"
             />
             <button
               type="submit"
               disabled={isSaving || !draft.trim()}
-              className="self-start rounded-full bg-moon px-4 py-1.5 text-xs text-btn-ink disabled:opacity-50"
+              className="btn-primary self-start"
             >
               {isSaving ? "enviando…" : "responder"}
             </button>

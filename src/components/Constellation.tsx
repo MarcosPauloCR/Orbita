@@ -77,6 +77,8 @@ export function Constellation() {
 
   return (
     <div className="pointer-events-none fixed inset-0 overflow-hidden bg-[radial-gradient(ellipse_at_top,_var(--sky-b),_var(--sky-a)_70%)]">
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,_transparent_0%,_var(--canvas)_85%)] opacity-70" />
+
       {stars.map((star, i) => (
         <span
           key={i}
@@ -89,6 +91,7 @@ export function Constellation() {
             opacity: 0.7,
             animationDelay: `${star.delay}s`,
             animationDuration: `${star.duration}s`,
+            boxShadow: star.size > 2 ? `0 0 ${star.size * 3}px var(--star)` : undefined,
           }}
         />
       ))}
@@ -97,8 +100,19 @@ export function Constellation() {
         className="absolute left-1/2 top-[10%] -translate-x-1/2"
         style={{ width: MOON_SIZE, height: MOON_SIZE }}
       >
-        <div className="absolute rounded-full bg-moon opacity-20 blur-xl" style={{ inset: -28 }} />
-        <div className="absolute inset-0 overflow-hidden rounded-full bg-moon-body ring-1 ring-inset ring-hairline">
+        <div
+          className="absolute rounded-full opacity-25 blur-2xl"
+          style={{ inset: -36, background: "radial-gradient(circle, var(--moon-b), transparent 70%)" }}
+        />
+        <div
+          className="absolute overflow-hidden rounded-full"
+          style={{ inset: 0, boxShadow: "0 0 60px -10px var(--glow-color)" }}
+        >
+          <div className="absolute inset-0 rounded-full bg-moon-body ring-1 ring-inset ring-hairline-strong" />
+          <div
+            className="absolute inset-0 rounded-full opacity-90"
+            style={{ background: "linear-gradient(135deg, var(--moon-a), var(--moon-b))" }}
+          />
           <div
             className="absolute h-full w-full rounded-full bg-canvas transition-[left] duration-700 ease-out"
             style={{ left: moon ? moon.offset : 0, top: 0 }}

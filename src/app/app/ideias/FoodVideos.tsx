@@ -41,12 +41,12 @@ function ReviewForm({
   }
 
   return (
-    <div className="flex flex-col gap-2 border-t border-hairline pt-2">
+    <div className="flex flex-col gap-3 border-t border-hairline pt-3">
       <StarPicker value={rating} onChange={setRating} />
       <label className="flex items-center gap-2 text-xs text-ink-muted">
         <input
           type="checkbox"
-          className="h-3.5 w-3.5"
+          className="h-3.5 w-3.5 accent-[var(--accent)]"
           checked={suggestEnabled}
           onChange={(e) => setSuggestEnabled(e.target.checked)}
         />
@@ -57,7 +57,7 @@ function ReviewForm({
           type="date"
           value={date}
           onChange={(e) => setDate(e.target.value)}
-          className="rounded-lg border border-hairline bg-surface px-2 py-1 text-xs text-ink"
+          className="input-field"
         />
       )}
       <div className="flex gap-2">
@@ -65,7 +65,7 @@ function ReviewForm({
           type="button"
           disabled={submitting}
           onClick={() => decide("approved")}
-          className="rounded-full bg-moon px-3 py-1.5 text-xs text-btn-ink disabled:opacity-50"
+          className="btn-primary"
         >
           👍 aprovar
         </button>
@@ -73,7 +73,7 @@ function ReviewForm({
           type="button"
           disabled={submitting}
           onClick={() => decide("rejected")}
-          className="rounded-full border border-hairline px-3 py-1.5 text-xs text-ink disabled:opacity-50"
+          className="btn-secondary"
         >
           👎 reprovar
         </button>
@@ -83,10 +83,18 @@ function ReviewForm({
 }
 
 function StatusBadge({ share }: { share: FoodShare }) {
-  const label = share.status === "approved" ? "✅ aprovado" : "❌ reprovado";
+  const approved = share.status === "approved";
   return (
-    <div className="flex flex-col gap-1">
-      <span className="text-xs text-ink">{label}</span>
+    <div className="flex flex-col gap-1.5">
+      <span
+        className="inline-flex w-fit items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-medium"
+        style={{
+          color: approved ? "var(--accent)" : "var(--danger)",
+          background: approved ? "var(--accent-soft)" : "var(--danger-soft)",
+        }}
+      >
+        {approved ? "✅ aprovado" : "❌ reprovado"}
+      </span>
       {share.rating !== null && (
         <span className="text-xs text-ink-muted">nota: {share.rating}/10</span>
       )}
@@ -114,13 +122,13 @@ function ShareCard({
   const isMine = share.from_user === currentUserId;
 
   return (
-    <div className="flex flex-col gap-2 rounded-xl border border-hairline bg-surface p-3">
+    <div className="card flex flex-col gap-3">
       <div className="flex items-center justify-between gap-2">
         <a
           href={share.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="truncate text-xs text-ink underline underline-offset-2"
+          className="chip truncate !text-ink"
         >
           ▶️ abrir vídeo
         </a>
@@ -128,7 +136,7 @@ function ShareCard({
           <button
             type="button"
             onClick={() => onDelete(share.id)}
-            className="text-[10px] text-ink-muted"
+            className="flex h-7 w-7 items-center justify-center rounded-full text-ink-muted transition hover:bg-danger-soft hover:text-danger"
           >
             🗑
           </button>
@@ -137,7 +145,7 @@ function ShareCard({
 
       {share.status === "pending" ? (
         isMine ? (
-          <span className="text-xs text-ink-muted">aguardando avaliação</span>
+          <span className="chip w-fit">aguardando avaliação</span>
         ) : (
           <ReviewForm share={share} onDone={onReviewed} />
         )
@@ -227,18 +235,18 @@ export function FoodVideos({
 
   return (
     <div className="flex flex-col gap-4">
-      <form onSubmit={handleSubmit} className="flex flex-col gap-2">
+      <form onSubmit={handleSubmit} className="card-flush flex flex-col gap-2 p-3">
         <input
           type="url"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           placeholder="cole o link do vídeo"
-          className="rounded-lg border border-hairline bg-surface px-3 py-2 text-xs text-ink"
+          className="input-field"
         />
         <button
           type="submit"
           disabled={isSending || !url.trim()}
-          className="self-start rounded-full bg-moon px-4 py-2 text-xs text-btn-ink disabled:opacity-50"
+          className="btn-primary self-start"
         >
           {isSending ? "enviando…" : "🍽️ compartilhar vídeo"}
         </button>
@@ -252,7 +260,7 @@ export function FoodVideos({
 
       {pending.length > 0 && (
         <div className="flex flex-col gap-2">
-          <h3 className="text-xs font-semibold text-ink-muted">pendentes</h3>
+          <h3 className="section-label">pendentes</h3>
           {pending.map((share) => (
             <ShareCard
               key={share.id}
@@ -267,7 +275,7 @@ export function FoodVideos({
 
       {history.length > 0 && (
         <div className="flex flex-col gap-2">
-          <h3 className="text-xs font-semibold text-ink-muted">histórico</h3>
+          <h3 className="section-label">histórico</h3>
           {history.map((share) => (
             <ShareCard
               key={share.id}
