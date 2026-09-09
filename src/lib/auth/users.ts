@@ -1,4 +1,5 @@
 import bcrypt from "bcryptjs";
+import { unstable_cache } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export type AppUser = {
@@ -8,18 +9,25 @@ export type AppUser = {
 
 type UserRow = AppUser & { password_hash: string };
 
-export async function getPublicUsers(): Promise<AppUser[]> {
-  const supabase = createAdminClient();
-  const { data, error } = await supabase.from("users").select("id, name");
-  // Lida sem exceção de propósito: isso roda em Server Components (layout,
-  // várias páginas) em toda navegação — um erro aqui não pode derrubar a
-  // tela inteira com uma página em branco, então degrada pra lista vazia.
-  if (error) {
-    console.error("getPublicUsers falhou:", error.message);
-    return [];
-  }
-  return data ?? [];
-}
+// Só 2 usuários fixos, que quase nunca mudam (nome muda raramente, senha
+// nem faz parte do retorno aqui) — cacheado porque isso roda em quase toda
+// navegação (layout, várias páginas) e do jeito antigo batia no Supabase
+// toda vez, o que pesa bastante na troca de aba pelo celular.
+export const getPublicUsers = unstable_cache(
+  async (): Promise<AppUser[]> => {
+    const supabase = createAdminClient();
+    const { data, error } = await supabase.from("users").select("id, name");
+    // Lida sem exceção de propósito: um erro aqui não pode derrubar a tela
+    // inteira com uma página em branco, então degrada pra lista vazia.
+    if (error) {
+      console.error("getPublicUsers falhou:", error.message);
+      return [];
+    }
+    return data ?? [];
+  },
+  ["public-users"],
+  { revalidate: 300, tags: ["users"] }
+);
 
 export async function verifyCredentials(
   login: string,

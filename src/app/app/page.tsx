@@ -22,22 +22,12 @@ export default async function AppPage() {
     redirect("/");
   }
 
-  const users = await getPublicUsers();
-  const otherUser = users.find((u) => u.id !== session.userId);
-  const otherUserName = otherUser?.name ?? "ela";
-
   const supabase = createAdminClient();
-  const { count } = await supabase
-    .from("signals")
-    .select("id", { count: "exact", head: true });
-
-  const { data: signals } = await supabase
-    .from("signals")
-    .select("from_user, created_at, type")
-    .order("created_at", { ascending: false })
-    .limit(1000);
 
   const [
+    users,
+    countRes,
+    signalsRes,
     checkins,
     moodHistory,
     reflectiveAnswers,
@@ -45,6 +35,13 @@ export default async function AppPage() {
     completeDaysCount,
     anniversaries,
   ] = await Promise.all([
+    getPublicUsers(),
+    supabase.from("signals").select("id", { count: "exact", head: true }),
+    supabase
+      .from("signals")
+      .select("from_user, created_at, type")
+      .order("created_at", { ascending: false })
+      .limit(1000),
     getTodayCheckins(),
     getMoodHistory(7),
     getTodayAnswers("reflective"),
@@ -52,6 +49,11 @@ export default async function AppPage() {
     getCompleteDaysCount(),
     getAnniversaries(),
   ]);
+
+  const otherUser = users.find((u) => u.id !== session.userId);
+  const otherUserName = otherUser?.name ?? "ela";
+  const count = countRes.count;
+  const signals = signalsRes.data;
 
   return (
     <div className="flex w-full max-w-sm min-h-0 flex-1 flex-col gap-8 overflow-y-auto pb-4">

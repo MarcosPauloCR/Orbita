@@ -8,8 +8,7 @@ export default async function CapsulaPage() {
   const session = await getSession();
   if (!session) redirect("/");
 
-  const users = await getPublicUsers();
-  const capsules = await getCapsules();
+  const [users, capsules] = await Promise.all([getPublicUsers(), getCapsules()]);
 
   const userNames = Object.fromEntries(users.map((u) => [u.id, u.name]));
 
