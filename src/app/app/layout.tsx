@@ -4,6 +4,7 @@ import { getSession } from "@/lib/auth/get-session";
 import { Constellation } from "@/components/Constellation";
 import { NotificationBridge } from "@/components/NotificationBridge";
 import { BottomNav } from "@/components/BottomNav";
+import { SplashScreen } from "@/components/SplashScreen";
 import { logoutAction } from "./actions";
 
 export const metadata: Metadata = {
@@ -27,7 +28,8 @@ export default async function AppLayout({
   const session = await getSession();
 
   return (
-    <div className="relative h-dvh overflow-hidden overscroll-none">
+    <div className="animate-fade-in relative h-dvh overflow-hidden overscroll-none">
+      <SplashScreen />
       <Constellation />
       <div className="relative z-10 flex h-full flex-col">
         <header className="flex items-center justify-between px-5 py-4">
