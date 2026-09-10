@@ -4,6 +4,7 @@ import { getSession } from "@/lib/auth/get-session";
 import { getPublicUsers } from "@/lib/auth/users";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendPushToUser } from "@/lib/push";
+import { autoScheduleCooking } from "@/lib/agenda";
 import { ok, fail, type ActionResult } from "@/lib/action-result";
 import { MENU_SUGGESTIONS } from "@/lib/menu-suggestions";
 
@@ -149,6 +150,14 @@ export async function reviewMenuItem(
     .single();
 
   if (error || !data) return fail(`Falha ao salvar avaliação: ${error?.message}`);
+
+  if (decision === "approved" && scheduledDay) {
+    await autoScheduleCooking({
+      day: scheduledDay,
+      createdBy: session.userId,
+      menuItemId: id,
+    });
+  }
 
   await notifyOtherUser(session.userId);
 

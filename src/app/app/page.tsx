@@ -6,6 +6,7 @@ import type { SignalRow } from "@/lib/streaks";
 import { SignalDashboard } from "./SignalDashboard";
 import { MoodCheckin } from "./MoodCheckin";
 import { DailyQuestion } from "./DailyQuestion";
+import { NextDateCard } from "./NextDateCard";
 import {
   sendSignal,
   sendSOS,
@@ -15,6 +16,7 @@ import {
   getCompleteDaysCount,
   getAnniversaries,
 } from "./actions";
+import { getNextAgendaDay } from "./agenda/actions";
 
 export default async function AppPage() {
   const session = await getSession();
@@ -34,6 +36,7 @@ export default async function AppPage() {
     hypotheticalAnswers,
     completeDaysCount,
     anniversaries,
+    nextAgendaDay,
   ] = await Promise.all([
     getPublicUsers(),
     supabase.from("signals").select("id", { count: "exact", head: true }),
@@ -48,6 +51,7 @@ export default async function AppPage() {
     getTodayAnswers("hypothetical"),
     getCompleteDaysCount(),
     getAnniversaries(),
+    getNextAgendaDay(),
   ]);
 
   const otherUser = users.find((u) => u.id !== session.userId);
@@ -70,6 +74,8 @@ export default async function AppPage() {
           ))}
         </div>
       )}
+
+      <NextDateCard day={nextAgendaDay} />
 
       <SignalDashboard
         currentUserId={session.userId}

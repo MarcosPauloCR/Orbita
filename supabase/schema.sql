@@ -393,6 +393,41 @@ alter table movie_shares enable row level security;
 
 -- Sem policies para anon/authenticated: só a service role lê/grava.
 
+-- Agenda: roteiro do dia (hora + atividade), um dia pode ter vários itens
+-- (ex: cozinhar de noite E ver um filme depois). Os 3 links são opcionais e
+-- mutuamente exclusivos na prática (só um preenchido por vez, dependendo de
+-- activity_type) — validado na Server Action, não aqui.
+-- auto_created marca itens que o próprio app criou sozinho (ao aprovar um
+-- vídeo de comida com data sugerida, ou um prato do cardápio — que sempre
+-- tem dia), pra distinguir de item adicionado manualmente na Agenda.
+create table if not exists agenda_items (
+  id uuid default gen_random_uuid() primary key,
+  day date not null,
+  meeting_time time,
+  activity_type text not null check (activity_type in ('sair', 'filme', 'cozinhar', 'dormir')),
+  description text,
+  movie_share_id uuid references movie_shares (id) on delete set null,
+  food_share_id uuid references food_shares (id) on delete set null,
+  menu_item_id uuid references menu_items (id) on delete set null,
+  created_by text not null references users (id),
+  auto_created boolean not null default false,
+  created_at timestamptz default now()
+);
+
+-- Modo surpresa: quem cria pode marcar o item pra ficar escondido de quem
+-- não criou até o dia/hora combinada — a trava é reforçada na Server
+-- Action (getAgendaItems nunca manda os detalhes de quem não pode ver
+-- ainda), mesmo espírito da cápsula do tempo.
+alter table agenda_items add column if not exists is_surprise boolean not null default false;
+
+-- Retrospectiva rápida depois que o dia passa ("como foi?"), fecha o ciclo
+-- do que foi planejado.
+alter table agenda_items add column if not exists recap text;
+
+alter table agenda_items enable row level security;
+
+-- Sem policies para anon/authenticated: só a service role lê/grava.
+
 -- Realtime (idempotente: ALTER PUBLICATION não tem IF NOT EXISTS)
 do $$
 begin

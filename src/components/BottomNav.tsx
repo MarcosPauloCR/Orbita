@@ -35,6 +35,19 @@ function IconSparkle({ className }: { className?: string }) {
   );
 }
 
+function IconCalendar({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className}>
+      <rect x="3.5" y="5" width="17" height="15" rx="2.5" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M3.5 9.5h17" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M8 3v3.4M16 3v3.4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <circle cx="8.3" cy="13.2" r="1" fill="currentColor" />
+      <circle cx="12" cy="13.2" r="1" fill="currentColor" />
+      <circle cx="8.3" cy="16.6" r="1" fill="currentColor" />
+    </svg>
+  );
+}
+
 function IconCapsule({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" className={className}>
@@ -64,6 +77,7 @@ function IconGames({ className }: { className?: string }) {
 const TABS = [
   { href: "/app", label: "Sinal", Icon: IconSignal },
   { href: "/app/ideias", label: "Ideias", Icon: IconSparkle },
+  { href: "/app/agenda", label: "Agenda", Icon: IconCalendar },
   { href: "/app/capsula", label: "Cápsula", Icon: IconCapsule },
   { href: "/app/jogos", label: "Jogos", Icon: IconGames },
 ];

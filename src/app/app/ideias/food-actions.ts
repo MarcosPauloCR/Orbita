@@ -4,6 +4,7 @@ import { getSession } from "@/lib/auth/get-session";
 import { getPublicUsers } from "@/lib/auth/users";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendPushToUser } from "@/lib/push";
+import { autoScheduleCooking } from "@/lib/agenda";
 import { ok, fail, type ActionResult } from "@/lib/action-result";
 
 export type FoodShareStatus = "pending" | "approved" | "rejected";
@@ -115,6 +116,14 @@ export async function reviewFoodShare(
     .single();
 
   if (error || !data) return fail(`Falha ao salvar avaliação: ${error?.message}`);
+
+  if (decision === "approved" && suggestedDate) {
+    await autoScheduleCooking({
+      day: suggestedDate,
+      createdBy: session.userId,
+      foodShareId: id,
+    });
+  }
 
   await notifyOtherUser(session.userId);
 
