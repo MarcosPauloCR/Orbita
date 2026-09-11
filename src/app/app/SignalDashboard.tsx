@@ -115,10 +115,14 @@ export function SignalDashboard({
   const [isSendingSOS, setIsSendingSOS] = useState(false);
   const [sent, setSent] = useState(false);
   const [received, setReceived] = useState<"normal" | "sos" | null>(null);
-  const theme = useThemeVars(["--accent", "--moon-a", "--moon-b"] as const);
+  const theme = useThemeVars(["--accent", "--canvas"] as const);
   const accentColor = theme["--accent"] || "#a97e2d";
-  const moonA = theme["--moon-a"] || "#f6eed6";
-  const moonB = theme["--moon-b"] || "#d9c48a";
+  // O shader do Phosphor não tem transparência — sempre pinta o quadro
+  // inteiro. O jeito de parecer "só a esfera, sem fundo" é fazer o fundo
+  // dele ser igual ao fundo do app: aí ele se camufla contra a página em
+  // volta, sobrando só o brilho visível.
+  const pageCanvasColor = theme["--canvas"] || "#0a0b10";
+  const silver = "#e7eaf0";
 
   useEffect(() => {
     const supabase = createClient();
@@ -200,19 +204,23 @@ export function SignalDashboard({
           className="relative flex h-40 w-40 items-center justify-center overflow-hidden rounded-full transition-all duration-300 hover:scale-[1.04] active:scale-95 disabled:opacity-70"
         >
           <Phosphor
-            background={moonB}
-            baseColor={moonA}
+            background={pageCanvasColor}
+            baseColor={silver}
             size={200}
-            distance={3}
-            turbulence={40}
-            brightness={260}
-            spectrum={20}
+            distance={6}
+            turbulence={50}
+            brightness={170}
+            spectrum={10}
             speed={40}
             style={{ position: "absolute", inset: 0 }}
           />
           <span
-            className="relative z-10 flex flex-col gap-0.5 text-center font-display text-lg tracking-wide text-btn-ink"
-            style={{ textShadow: "0 1px 4px rgba(0,0,0,0.35)" }}
+            className="relative z-10 flex flex-col gap-0.5 text-center font-display text-lg tracking-wide"
+            style={{
+              color: "rgba(255,255,255,0.9)",
+              textShadow:
+                "1px 1px 1px rgba(0,0,0,0.5), -1px -1px 1px rgba(255,255,255,0.6)",
+            }}
           >
             <span>pensando</span>
             <span>em você</span>
