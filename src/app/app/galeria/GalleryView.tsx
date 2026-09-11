@@ -17,8 +17,18 @@ export function GalleryView({
 }) {
   const [photos, setPhotos] = useState<GalleryPhoto[]>(initialPhotos);
   const [isSending, setIsSending] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const channelRef = useRef<RealtimeChannel | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!isFullscreen) return;
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") setIsFullscreen(false);
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isFullscreen]);
 
   useEffect(() => {
     const supabase = createClient();
@@ -109,7 +119,7 @@ export function GalleryView({
       {photos.length === 0 ? (
         <p className="text-center text-xs text-ink-muted">nenhuma foto ainda</p>
       ) : (
-        <div className="card-flush h-80 w-full">
+        <div className="card-flush relative h-80 w-full">
           <VerticalParallax
             items={parallaxItems}
             background="transparent"
@@ -118,6 +128,36 @@ export function GalleryView({
             radius={20}
             style={{ width: "100%", height: "100%" }}
           />
+          <button
+            type="button"
+            onClick={() => setIsFullscreen(true)}
+            aria-label="ver em tela cheia"
+            className="glass absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full text-ink transition hover:bg-surface-strong"
+          >
+            ⛶
+          </button>
+        </div>
+      )}
+
+      {isFullscreen && (
+        <div className="fixed inset-0 z-50 bg-canvas">
+          <VerticalParallax
+            items={parallaxItems}
+            background="transparent"
+            cardWidth={320}
+            cardHeight={240}
+            radius={24}
+            style={{ width: "100%", height: "100%" }}
+          />
+          <button
+            type="button"
+            onClick={() => setIsFullscreen(false)}
+            aria-label="fechar tela cheia"
+            className="glass absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full text-lg text-ink transition hover:bg-surface-strong"
+            style={{ top: "max(1rem, env(safe-area-inset-top))" }}
+          >
+            ✕
+          </button>
         </div>
       )}
 
