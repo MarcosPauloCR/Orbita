@@ -208,11 +208,16 @@ export function SignalDashboard({
             baseColor={silver}
             size={200}
             distance={6}
-            turbulence={50}
-            brightness={170}
+            turbulence={22}
+            brightness={140}
             spectrum={10}
             speed={40}
-            style={{ position: "absolute", inset: 0 }}
+            style={{
+              position: "absolute",
+              inset: 0,
+              WebkitMaskImage: "radial-gradient(circle 80px at 50% 50%, #000 55%, transparent 100%)",
+              maskImage: "radial-gradient(circle 80px at 50% 50%, #000 55%, transparent 100%)",
+            }}
           />
           <span
             className="relative z-10 flex flex-col gap-0.5 text-center font-display text-lg tracking-wide"
