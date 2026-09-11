@@ -12,6 +12,30 @@ import {
 } from "@/lib/streaks";
 import type { ActionResult } from "@/lib/action-result";
 import { ActivityCalendar } from "./ActivityCalendar";
+import NeonBorder from "@/components/NeonBorder";
+
+// Resolvido em runtime porque o NeonBorder não entende "var(--x)" — ele só
+// sabe ler hex/rgb prontos. --accent já muda sozinho entre claro/escuro no
+// globals.css; aqui só refletimos o valor atual.
+function useAccentColor(): string {
+  const [color, setColor] = useState("#a97e2d");
+
+  useEffect(() => {
+    function resolve() {
+      const value = getComputedStyle(document.documentElement)
+        .getPropertyValue("--accent")
+        .trim();
+      if (value) setColor(value);
+    }
+    resolve();
+
+    const query = window.matchMedia("(prefers-color-scheme: dark)");
+    query.addEventListener("change", resolve);
+    return () => query.removeEventListener("change", resolve);
+  }, []);
+
+  return color;
+}
 
 type HistoryGroup = {
   label: string;
@@ -84,6 +108,7 @@ export function SignalDashboard({
   const [isSendingSOS, setIsSendingSOS] = useState(false);
   const [sent, setSent] = useState(false);
   const [received, setReceived] = useState<"normal" | "sos" | null>(null);
+  const accentColor = useAccentColor();
 
   useEffect(() => {
     const supabase = createClient();
@@ -180,6 +205,15 @@ export function SignalDashboard({
 
       <div className="grid w-full grid-cols-2 gap-3">
         <div className="card text-center">
+          <NeonBorder
+            style={{ position: "absolute", inset: 0, pointerEvents: "none" }}
+            color={accentColor}
+            rounded={34}
+            thickness={2}
+            borderSize={45}
+            glow={45}
+            speed={10}
+          />
           {isStreakRecord && streak > 1 && (
             <span className="absolute right-3 top-3 text-xs" title="seu recorde de sequência">
               🏆
@@ -200,6 +234,15 @@ export function SignalDashboard({
           )}
         </div>
         <div className="card text-center">
+          <NeonBorder
+            style={{ position: "absolute", inset: 0, pointerEvents: "none" }}
+            color={accentColor}
+            rounded={34}
+            thickness={2}
+            borderSize={45}
+            glow={45}
+            speed={10}
+          />
           {isDayRecord && (
             <span className="absolute right-3 top-3 text-xs" title="recorde de sinais no dia">
               🏆
@@ -219,6 +262,15 @@ export function SignalDashboard({
       </div>
 
       <div className="card w-full text-center">
+        <NeonBorder
+          style={{ position: "absolute", inset: 0, pointerEvents: "none" }}
+          color={accentColor}
+          rounded={34}
+          thickness={2}
+          borderSize={45}
+          glow={45}
+          speed={10}
+        />
         <p className="font-display text-2xl text-ink">{completeDaysCount}</p>
         <p className="section-label mt-0.5">
           dias completos (sinal + humor + pergunta)
