@@ -6,6 +6,8 @@ import {
   type DailyAnswerState,
   type QuestionCategory,
 } from "./actions";
+import NeonBorder from "@/components/NeonBorder";
+import { useThemeVars } from "@/lib/useThemeVars";
 
 export function DailyQuestion({
   title,
@@ -21,6 +23,8 @@ export function DailyQuestion({
   const [state, setState] = useState(initial);
   const [draft, setDraft] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const theme = useThemeVars(["--accent"] as const);
+  const accentColor = theme["--accent"] || "#a97e2d";
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -44,6 +48,15 @@ export function DailyQuestion({
     <div className="w-full">
       <p className="section-label mb-2">{title}</p>
       <div className="card">
+        <NeonBorder
+          style={{ position: "absolute", inset: 0, pointerEvents: "none" }}
+          color={accentColor}
+          rounded={34}
+          thickness={2}
+          borderSize={45}
+          glow={0}
+          speed={10}
+        />
         <p className="text-sm text-ink">{state.question}</p>
 
         {state.myAnswer === null ? (

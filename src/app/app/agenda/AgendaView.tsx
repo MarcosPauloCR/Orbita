@@ -14,6 +14,8 @@ import {
   type MovieOption,
   type CookingOption,
 } from "./actions";
+import NeonBorder from "@/components/NeonBorder";
+import { useThemeVars } from "@/lib/useThemeVars";
 
 const AGENDA_CHANNEL = "orbita-agenda";
 
@@ -424,6 +426,8 @@ export function AgendaView({
   const [formPreset, setFormPreset] = useState<FormPreset | null>(null);
   const [nudgeDismissed, setNudgeDismissed] = useState(false);
   const channelRef = useRef<RealtimeChannel | null>(null);
+  const theme = useThemeVars(["--accent"] as const);
+  const accentColor = theme["--accent"] || "#a97e2d";
 
   async function refreshAgenda() {
     const [freshItems, freshOptions] = await Promise.all([
@@ -586,6 +590,15 @@ export function AgendaView({
       )}
 
       <div className="card-flush p-4">
+        <NeonBorder
+          style={{ position: "absolute", inset: 2, pointerEvents: "none" }}
+          color={accentColor}
+          rounded={20}
+          thickness={2}
+          borderSize={45}
+          glow={0}
+          speed={10}
+        />
         <div className="mb-3 flex items-center justify-between">
           <button
             type="button"
