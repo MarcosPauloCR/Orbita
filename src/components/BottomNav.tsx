@@ -48,6 +48,16 @@ function IconCalendar({ className }: { className?: string }) {
   );
 }
 
+function IconPhoto({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className}>
+      <rect x="3.2" y="6" width="17.6" height="13" rx="2.2" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M7.5 6 9 3.6h6L16.5 6" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+      <circle cx="12" cy="12.6" r="3.4" stroke="currentColor" strokeWidth="1.6" />
+    </svg>
+  );
+}
+
 function IconCapsule({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" className={className}>
@@ -78,6 +88,7 @@ const TABS = [
   { href: "/app", label: "Sinal", Icon: IconSignal },
   { href: "/app/ideias", label: "Ideias", Icon: IconSparkle },
   { href: "/app/agenda", label: "Agenda", Icon: IconCalendar },
+  { href: "/app/galeria", label: "Galeria", Icon: IconPhoto },
   { href: "/app/capsula", label: "Cápsula", Icon: IconCapsule },
   { href: "/app/jogos", label: "Jogos", Icon: IconGames },
 ];
