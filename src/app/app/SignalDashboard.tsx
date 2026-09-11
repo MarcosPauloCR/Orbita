@@ -13,28 +13,35 @@ import {
 import type { ActionResult } from "@/lib/action-result";
 import { ActivityCalendar } from "./ActivityCalendar";
 import NeonBorder from "@/components/NeonBorder";
+import { Phosphor } from "@/components/Phosphor";
 
-// Resolvido em runtime porque o NeonBorder não entende "var(--x)" — ele só
-// sabe ler hex/rgb prontos. --accent já muda sozinho entre claro/escuro no
-// globals.css; aqui só refletimos o valor atual.
-function useAccentColor(): string {
-  const [color, setColor] = useState("#a97e2d");
+// Resolvido em runtime porque nem NeonBorder nem Phosphor entendem
+// "var(--x)" — os dois só sabem ler hex/rgb prontos. As variáveis já mudam
+// sozinhas entre claro/escuro no globals.css; aqui só refletimos o valor
+// atual de cada uma.
+function useThemeVars<T extends readonly string[]>(names: T): Record<T[number], string> {
+  const initial = Object.fromEntries(names.map((n) => [n, ""])) as Record<T[number], string>;
+  const [values, setValues] = useState(initial);
+  const key = names.join(",");
 
   useEffect(() => {
     function resolve() {
-      const value = getComputedStyle(document.documentElement)
-        .getPropertyValue("--accent")
-        .trim();
-      if (value) setColor(value);
+      const styles = getComputedStyle(document.documentElement);
+      setValues(
+        Object.fromEntries(
+          names.map((n) => [n, styles.getPropertyValue(n).trim()])
+        ) as Record<T[number], string>
+      );
     }
     resolve();
 
     const query = window.matchMedia("(prefers-color-scheme: dark)");
     query.addEventListener("change", resolve);
     return () => query.removeEventListener("change", resolve);
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
 
-  return color;
+  return values;
 }
 
 type HistoryGroup = {
@@ -108,7 +115,10 @@ export function SignalDashboard({
   const [isSendingSOS, setIsSendingSOS] = useState(false);
   const [sent, setSent] = useState(false);
   const [received, setReceived] = useState<"normal" | "sos" | null>(null);
-  const accentColor = useAccentColor();
+  const theme = useThemeVars(["--accent", "--moon-a", "--moon-b"] as const);
+  const accentColor = theme["--accent"] || "#a97e2d";
+  const moonA = theme["--moon-a"] || "#f6eed6";
+  const moonB = theme["--moon-b"] || "#d9c48a";
 
   useEffect(() => {
     const supabase = createClient();
@@ -187,13 +197,24 @@ export function SignalDashboard({
         <button
           onClick={handleClick}
           disabled={isPending}
-          className="animate-glow flex h-40 w-40 flex-col items-center justify-center gap-0.5 rounded-full text-center font-display text-lg tracking-wide text-btn-ink transition-all duration-300 hover:scale-[1.04] active:scale-95 disabled:opacity-70"
-          style={{
-            background: "linear-gradient(135deg, var(--moon-a), var(--moon-b))",
-          }}
+          className="relative flex h-40 w-40 items-center justify-center overflow-hidden rounded-full transition-all duration-300 hover:scale-[1.04] active:scale-95 disabled:opacity-70"
         >
-          <span>pensando</span>
-          <span>em você</span>
+          <Phosphor
+            background={moonB}
+            baseColor={moonA}
+            distance={10}
+            turbulence={30}
+            brightness={220}
+            speed={40}
+            style={{ position: "absolute", inset: 0 }}
+          />
+          <span
+            className="relative z-10 flex flex-col gap-0.5 text-center font-display text-lg tracking-wide text-btn-ink"
+            style={{ textShadow: "0 1px 4px rgba(0,0,0,0.35)" }}
+          >
+            <span>pensando</span>
+            <span>em você</span>
+          </span>
         </button>
         <p className="h-4 text-xs text-ink-muted">
           {isPending ? "enviando…" : sent ? "enviado ✦" : ""}
