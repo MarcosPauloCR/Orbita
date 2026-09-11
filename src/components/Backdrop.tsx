@@ -20,7 +20,8 @@ function readPalette(): Palette {
     base: read("--accent", dark ? "#d9c48a" : "#a97e2d"),
     // No tema claro o brilho se perde contra o fundo claro e vira uma
     // mancha lavada; mais fraco ali ele fica como um veio de tinta.
-    brightness: dark ? 109 : 55,
+    // Reduzido de 109/55 depois de competir demais com o texto por cima.
+    brightness: dark ? 46 : 26,
   };
 }
 
