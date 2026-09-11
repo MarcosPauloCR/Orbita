@@ -206,7 +206,7 @@ export function SignalDashboard({
       <div className="grid w-full grid-cols-2 gap-3">
         <div className="card text-center">
           <NeonBorder
-            style={{ position: "absolute", inset: 0, pointerEvents: "none" }}
+            style={{ position: "absolute", inset: 0, pointerEvents: "none", overflow: "hidden" }}
             color={accentColor}
             rounded={34}
             thickness={2}
@@ -235,7 +235,7 @@ export function SignalDashboard({
         </div>
         <div className="card text-center">
           <NeonBorder
-            style={{ position: "absolute", inset: 0, pointerEvents: "none" }}
+            style={{ position: "absolute", inset: 0, pointerEvents: "none", overflow: "hidden" }}
             color={accentColor}
             rounded={34}
             thickness={2}
