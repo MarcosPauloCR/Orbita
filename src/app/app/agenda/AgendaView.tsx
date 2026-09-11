@@ -553,7 +553,7 @@ export function AgendaView({
   const selectedItems = itemsByDay.get(selectedDay) ?? [];
 
   return (
-    <div className="flex w-full max-w-sm flex-1 flex-col gap-4 overflow-y-auto min-h-0">
+    <div className="flex w-full max-w-sm flex-1 flex-col gap-4 overflow-y-auto overflow-x-hidden min-h-0">
       {weekSuggestion && !nudgeDismissed && (
         <div className="card flex flex-col gap-2">
           <p className="text-xs text-ink">🤖 essa semana ainda tá sem nada marcado!</p>

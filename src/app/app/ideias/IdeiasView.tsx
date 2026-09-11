@@ -30,7 +30,7 @@ export function IdeiasView({
   const [category, setCategory] = useState<Category>("food");
 
   return (
-    <div className="flex w-full max-w-sm flex-1 flex-col min-h-0 overflow-y-auto">
+    <div className="flex w-full max-w-sm flex-1 flex-col min-h-0 overflow-y-auto overflow-x-hidden">
       <div className="glass mb-4 flex gap-1 rounded-full p-1.5">
         {CATEGORIES.map((c) => (
           <button

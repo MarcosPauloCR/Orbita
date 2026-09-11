@@ -60,7 +60,7 @@ export default async function AppPage() {
   const signals = signalsRes.data;
 
   return (
-    <div className="flex w-full max-w-sm min-h-0 flex-1 flex-col gap-8 overflow-y-auto pb-4">
+    <div className="flex w-full max-w-sm min-h-0 flex-1 flex-col gap-8 overflow-y-auto overflow-x-hidden pb-4">
       {anniversaries.length > 0 && (
         <div className="card flex flex-col gap-1">
           {anniversaries.map((a, i) => (

@@ -138,7 +138,7 @@ export function JogoView({
   const showBoard = !!game && game.status === "playing" && game.accepted;
 
   return (
-    <div className="flex w-full min-h-0 flex-1 flex-col gap-6 overflow-y-auto pb-4">
+    <div className="flex w-full min-h-0 flex-1 flex-col gap-6 overflow-y-auto overflow-x-hidden pb-4">
       {game && game.status !== "playing" && (
         <div className="rounded-2xl border border-hairline bg-surface p-4 text-center">
           <p className="font-display text-lg text-ink">

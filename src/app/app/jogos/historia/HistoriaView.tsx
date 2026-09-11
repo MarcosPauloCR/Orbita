@@ -89,7 +89,7 @@ export function HistoriaView({
       )}
 
       <div
-        className={`flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto rounded-2xl border border-hairline bg-surface p-4 ${
+        className={`flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overflow-x-hidden rounded-2xl border border-hairline bg-surface p-4 ${
           isDesktop ? "max-h-[60vh]" : ""
         }`}
       >
