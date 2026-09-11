@@ -23,6 +23,7 @@ export type AgendaItem = {
   recap: string | null;
   created_at: string;
   movie_title: string | null;
+  food_title: string | null;
   food_url: string | null;
   menu_dish: string | null;
   menu_recipe_url: string | null;
@@ -47,12 +48,12 @@ type AgendaRow = {
   recap: string | null;
   created_at: string;
   movie_shares: { title: string } | null;
-  food_shares: { url: string } | null;
+  food_shares: { title: string | null; url: string } | null;
   menu_items: { dish: string; recipe_url: string | null } | null;
 };
 
 const AGENDA_COLUMNS =
-  "id, day, meeting_time, activity_type, description, movie_share_id, food_share_id, menu_item_id, created_by, auto_created, is_surprise, recap, created_at, movie_shares(title), food_shares(url), menu_items(dish, recipe_url)";
+  "id, day, meeting_time, activity_type, description, movie_share_id, food_share_id, menu_item_id, created_by, auto_created, is_surprise, recap, created_at, movie_shares(title), food_shares(title, url), menu_items(dish, recipe_url)";
 
 function revealTimeArrived(day: string, meetingTime: string | null): boolean {
   const timePart = meetingTime ? meetingTime.slice(0, 5) : "00:00";
@@ -81,6 +82,7 @@ function toAgendaItem(row: AgendaRow, viewerUserId: string): AgendaItem {
     recap: row.recap,
     created_at: row.created_at,
     movie_title: locked ? null : row.movie_shares?.title ?? null,
+    food_title: locked ? null : row.food_shares?.title ?? null,
     food_url: locked ? null : row.food_shares?.url ?? null,
     menu_dish: locked ? null : row.menu_items?.dish ?? null,
     menu_recipe_url: locked ? null : row.menu_items?.recipe_url ?? null,
@@ -130,7 +132,7 @@ export async function getNextAgendaDay(): Promise<string | null> {
 
 export type MovieOption = { id: string; title: string; link_url: string | null };
 export type CookingOption =
-  | { kind: "food"; id: string; url: string; rating: number | null }
+  | { kind: "food"; id: string; title: string | null; url: string; rating: number | null }
   | { kind: "menu"; id: string; dish: string; recipe_url: string | null };
 
 // Só mostra o que ainda não está em nenhum dia da agenda — um vídeo/prato
@@ -152,7 +154,7 @@ export async function getAgendaPickerOptions(): Promise<{
       .select("id, title, link_url")
       .eq("status", "approved")
       .is("watched_at", null),
-    supabase.from("food_shares").select("id, url, rating").eq("status", "approved"),
+    supabase.from("food_shares").select("id, title, url, rating").eq("status", "approved"),
     supabase
       .from("menu_items")
       .select("id, dish, recipe_url")
@@ -172,7 +174,13 @@ export async function getAgendaPickerOptions(): Promise<{
   const cooking: CookingOption[] = [
     ...(foodRes.data ?? [])
       .filter((f) => !usedFoodIds.has(f.id))
-      .map((f): CookingOption => ({ kind: "food", id: f.id, url: f.url, rating: f.rating })),
+      .map((f): CookingOption => ({
+        kind: "food",
+        id: f.id,
+        title: f.title,
+        url: f.url,
+        rating: f.rating,
+      })),
     ...(menuRes.data ?? [])
       .filter((m) => !usedMenuIds.has(m.id))
       .map((m): CookingOption => ({ kind: "menu", id: m.id, dish: m.dish, recipe_url: m.recipe_url })),

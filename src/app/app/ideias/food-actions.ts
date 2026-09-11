@@ -12,6 +12,7 @@ export type FoodShareStatus = "pending" | "approved" | "rejected";
 export type FoodShare = {
   id: string;
   from_user: string;
+  title: string | null;
   url: string;
   status: FoodShareStatus;
   rating: number | null;
@@ -21,7 +22,7 @@ export type FoodShare = {
 };
 
 const FOOD_COLUMNS =
-  "id, from_user, url, status, rating, suggested_date, created_at, decided_at";
+  "id, from_user, title, url, status, rating, suggested_date, created_at, decided_at";
 
 async function notifyOtherUser(exceptUserId: string): Promise<void> {
   const otherUser = (await getPublicUsers()).find((u) => u.id !== exceptUserId);
@@ -46,10 +47,14 @@ export async function getFoodShares(): Promise<FoodShare[]> {
 }
 
 export async function shareFoodVideo(
+  title: string,
   url: string
 ): Promise<ActionResult<FoodShare>> {
   const session = await getSession();
   if (!session) return fail("Sessão expirada.");
+
+  const trimmedTitle = title.trim();
+  if (!trimmedTitle) return fail("Dê um nome pro vídeo.");
 
   const trimmed = url.trim();
   if (!trimmed) return fail("Cole o link do vídeo.");
@@ -66,7 +71,7 @@ export async function shareFoodVideo(
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("food_shares")
-    .insert({ from_user: session.userId, url: trimmed })
+    .insert({ from_user: session.userId, title: trimmedTitle, url: trimmed })
     .select(FOOD_COLUMNS)
     .single();
 

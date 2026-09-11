@@ -348,6 +348,10 @@ create table if not exists food_shares (
   created_at timestamptz default now()
 );
 
+-- Nome curto pra identificar o vídeo (ex: "brigadeiro gourmet") — sem
+-- isso, o link sozinho não dizia nada quando aparecia escolhido na Agenda.
+alter table food_shares add column if not exists title text;
+
 alter table food_shares enable row level security;
 
 -- Sem policies para anon/authenticated: só a service role lê/grava.

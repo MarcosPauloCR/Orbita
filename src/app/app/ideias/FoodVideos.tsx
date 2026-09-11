@@ -124,14 +124,18 @@ function ShareCard({
   return (
     <div className="card flex flex-col gap-3">
       <div className="flex items-center justify-between gap-2">
-        <a
-          href={share.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="chip truncate !text-ink"
-        >
-          ▶️ abrir vídeo
-        </a>
+        <div className="flex min-w-0 flex-col">
+          <span className="truncate text-xs text-ink">{share.title || "vídeo sem nome"}</span>
+          <a
+            href={share.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-fit text-[10px]"
+            style={{ color: "var(--accent)" }}
+          >
+            ▶️ abrir vídeo
+          </a>
+        </div>
         {isMine && (
           <button
             type="button"
@@ -164,6 +168,7 @@ export function FoodVideos({
   initialShares: FoodShare[];
 }) {
   const [shares, setShares] = useState<FoodShare[]>(initialShares);
+  const [title, setTitle] = useState("");
   const [url, setUrl] = useState("");
   const [isSending, setIsSending] = useState(false);
   const channelRef = useRef<RealtimeChannel | null>(null);
@@ -196,17 +201,18 @@ export function FoodVideos({
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (!url.trim()) return;
+    if (!title.trim() || !url.trim()) return;
 
     setIsSending(true);
     try {
-      const result = await shareFoodVideo(url);
+      const result = await shareFoodVideo(title, url);
       if (!result.ok) {
         alert(result.error);
         return;
       }
       setShares((prev) => [result.data, ...prev]);
       channelRef.current?.send({ type: "broadcast", event: "shared", payload: result.data });
+      setTitle("");
       setUrl("");
     } finally {
       setIsSending(false);
@@ -237,6 +243,13 @@ export function FoodVideos({
     <div className="flex flex-col gap-4">
       <form onSubmit={handleSubmit} className="card-flush flex flex-col gap-2 p-3">
         <input
+          type="text"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="nome do prato (ex: brigadeiro gourmet)"
+          className="input-field"
+        />
+        <input
           type="url"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
@@ -245,7 +258,7 @@ export function FoodVideos({
         />
         <button
           type="submit"
-          disabled={isSending || !url.trim()}
+          disabled={isSending || !title.trim() || !url.trim()}
           className="btn-primary self-start"
         >
           {isSending ? "enviando…" : "🍽️ compartilhar vídeo"}

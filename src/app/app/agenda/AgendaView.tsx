@@ -182,15 +182,18 @@ function AgendaItemCard({
             </span>
           )}
           {item.activity_type === "cozinhar" && item.food_url && (
-            <a
-              href={item.food_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-fit text-xs"
-              style={{ color: "var(--accent)" }}
-            >
-              ▶️ abrir vídeo
-            </a>
+            <span className="text-xs text-ink-muted">
+              {item.food_title || "vídeo sem nome"}
+              {" · "}
+              <a
+                href={item.food_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: "var(--accent)" }}
+              >
+                abrir vídeo ↗
+              </a>
+            </span>
           )}
           {item.auto_created && <span className="chip w-fit">agendado automático</span>}
         </div>
@@ -365,7 +368,9 @@ function AddAgendaForm({
                     checked={cookingChoice === value}
                     onChange={() => setCookingChoice(value)}
                   />
-                  {c.kind === "menu" ? `🍳 ${c.dish}` : "🎥 vídeo compartilhado"}
+                  {c.kind === "menu"
+                    ? `🍳 ${c.dish}`
+                    : `🎥 ${c.title || "vídeo sem nome"}`}
                 </label>
               );
             })}
@@ -479,7 +484,7 @@ export function AgendaView({
           c.kind === "menu"
             ? { activityType: "cozinhar" as const, menuItemId: c.id }
             : { activityType: "cozinhar" as const, foodShareId: c.id },
-        label: c.kind === "menu" ? `🍳 cozinhar "${c.dish}"` : "🍳 cozinhar o vídeo compartilhado",
+        label: `🍳 cozinhar "${c.kind === "menu" ? c.dish : c.title || "vídeo sem nome"}"`,
       })),
     ];
 
