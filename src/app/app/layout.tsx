@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import { getSession } from "@/lib/auth/get-session";
-import { Constellation } from "@/components/Constellation";
+import { Backdrop } from "@/components/Backdrop";
 import { NotificationBridge } from "@/components/NotificationBridge";
 import { BottomNav } from "@/components/BottomNav";
 import { SplashScreen } from "@/components/SplashScreen";
@@ -30,7 +30,7 @@ export default async function AppLayout({
   return (
     <div className="animate-fade-in relative h-dvh overflow-hidden overscroll-none">
       <SplashScreen />
-      <Constellation />
+      <Backdrop />
       <div className="relative z-10 flex h-full flex-col">
         <header className="flex items-center justify-between px-5 py-4">
           <div className="flex flex-col leading-none">

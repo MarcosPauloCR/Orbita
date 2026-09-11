@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Constellation } from "@/components/Constellation";
+import { Backdrop } from "@/components/Backdrop";
 import { LoginForm } from "./LoginForm";
 
 export const metadata: Metadata = {
@@ -18,7 +18,7 @@ export const viewport: Viewport = {
 export default function LoginPage() {
   return (
     <main className="relative flex h-dvh items-center justify-center overflow-hidden overscroll-none px-4">
-      <Constellation />
+      <Backdrop />
       <div className="relative z-10 w-full max-w-sm">
         <h1 className="mb-8 text-center font-display text-3xl text-ink">
           Órbita
