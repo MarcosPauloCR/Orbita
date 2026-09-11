@@ -202,9 +202,11 @@ export function SignalDashboard({
           <Phosphor
             background={moonB}
             baseColor={moonA}
-            distance={10}
-            turbulence={30}
-            brightness={220}
+            size={200}
+            distance={3}
+            turbulence={40}
+            brightness={260}
+            spectrum={20}
             speed={40}
             style={{ position: "absolute", inset: 0 }}
           />
