@@ -201,7 +201,7 @@ export function SignalDashboard({
         <button
           onClick={handleClick}
           disabled={isPending}
-          className="relative flex h-40 w-40 items-center justify-center overflow-hidden rounded-full transition-all duration-300 hover:scale-[1.04] active:scale-95 disabled:opacity-70"
+          className="relative flex h-60 w-60 items-center justify-center overflow-hidden rounded-full transition-all duration-300 hover:scale-[1.04] active:scale-95 disabled:opacity-70"
         >
           <Phosphor
             background={pageCanvasColor}
@@ -215,12 +215,12 @@ export function SignalDashboard({
             style={{
               position: "absolute",
               inset: 0,
-              WebkitMaskImage: "radial-gradient(circle 80px at 50% 50%, #000 55%, transparent 100%)",
-              maskImage: "radial-gradient(circle 80px at 50% 50%, #000 55%, transparent 100%)",
+              WebkitMaskImage: "radial-gradient(circle 120px at 50% 50%, #000 55%, transparent 100%)",
+              maskImage: "radial-gradient(circle 120px at 50% 50%, #000 55%, transparent 100%)",
             }}
           />
           <span
-            className="relative z-10 flex flex-col gap-0.5 text-center font-display text-lg tracking-wide"
+            className="relative z-10 flex flex-col gap-0.5 text-center font-display text-xl tracking-wide"
             style={{
               color: "rgba(255,255,255,0.9)",
               textShadow:
