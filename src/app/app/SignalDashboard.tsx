@@ -206,12 +206,12 @@ export function SignalDashboard({
       <div className="grid w-full grid-cols-2 gap-3">
         <div className="card text-center">
           <NeonBorder
-            style={{ position: "absolute", inset: 0, pointerEvents: "none", overflow: "hidden" }}
+            style={{ position: "absolute", inset: 0, pointerEvents: "none" }}
             color={accentColor}
             rounded={34}
             thickness={2}
             borderSize={45}
-            glow={45}
+            glow={0}
             speed={10}
           />
           {isStreakRecord && streak > 1 && (
@@ -235,12 +235,12 @@ export function SignalDashboard({
         </div>
         <div className="card text-center">
           <NeonBorder
-            style={{ position: "absolute", inset: 0, pointerEvents: "none", overflow: "hidden" }}
+            style={{ position: "absolute", inset: 0, pointerEvents: "none" }}
             color={accentColor}
             rounded={34}
             thickness={2}
             borderSize={45}
-            glow={45}
+            glow={0}
             speed={10}
           />
           {isDayRecord && (
@@ -268,7 +268,7 @@ export function SignalDashboard({
           rounded={34}
           thickness={2}
           borderSize={45}
-          glow={45}
+          glow={0}
           speed={10}
         />
         <p className="font-display text-2xl text-ink">{completeDaysCount}</p>
