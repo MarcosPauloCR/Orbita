@@ -209,7 +209,7 @@ export function SignalDashboard({
             size={200}
             distance={6}
             turbulence={22}
-            brightness={140}
+            brightness={230}
             spectrum={10}
             speed={40}
             style={{
