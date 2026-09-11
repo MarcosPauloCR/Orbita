@@ -250,21 +250,13 @@ export async function addAgendaItem(input: {
   }
   // 'dormir' não precisa de campo extra.
 
-  const { data: inserted, error } = await supabase
+  const { data: full, error } = await supabase
     .from("agenda_items")
     .insert(insertRow)
-    .select("id")
-    .single();
-
-  if (error || !inserted) return fail(`Falha ao adicionar: ${error?.message}`);
-
-  const { data: full, error: fetchError } = await supabase
-    .from("agenda_items")
     .select(AGENDA_COLUMNS)
-    .eq("id", inserted.id)
     .single();
 
-  if (fetchError || !full) return fail("Item criado, mas falhou ao carregar.");
+  if (error || !full) return fail(`Falha ao adicionar: ${error?.message}`);
 
   await notifyOtherUser(session.userId);
 
