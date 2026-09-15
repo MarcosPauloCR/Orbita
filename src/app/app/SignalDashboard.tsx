@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import {
   computeMutualStreak,
@@ -241,6 +242,9 @@ export function SignalDashboard({
               faltam {next.days - streak} p/ {next.icon} {next.name}
             </p>
           )}
+          <Link href="/app/trofeus" className="chip mt-2 !text-[9px]">
+            🏆 ver troféus
+          </Link>
         </div>
         <div className="card text-center">
           <NeonBorder

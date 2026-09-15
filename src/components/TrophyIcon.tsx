@@ -31,7 +31,11 @@ export type TrophyIconKind =
   | "trophy-cup"
   | "crown"
   | "gem"
-  | "rainbow";
+  | "rainbow"
+  | "sleep"
+  | "movie-reel"
+  | "cooking-pot"
+  | "compass";
 
 function GoldStops() {
   return (
@@ -410,6 +414,90 @@ function renderIcon(kind: TrophyIconKind, id: string) {
           <path d="M5 17a7 7 0 0 1 14 0" stroke="#ffd166" strokeWidth="1.6" fill="none" strokeLinecap="round" />
           <path d="M7 17a5 5 0 0 1 10 0" stroke="#8ce99a" strokeWidth="1.6" fill="none" strokeLinecap="round" />
           <path d="M9 17a3 3 0 0 1 6 0" stroke="#74c0fc" strokeWidth="1.6" fill="none" strokeLinecap="round" />
+        </>
+      );
+
+    case "sleep":
+      return (
+        <>
+          <defs>
+            <linearGradient id={id} x1="4" y1="4" x2="20" y2="20" gradientUnits="userSpaceOnUse">
+              <GoldStops />
+            </linearGradient>
+          </defs>
+          <path
+            d="M15 5a7 7 0 1 0 6 10.5A7.5 7.5 0 0 1 15 5z"
+            fill={`url(#${id})`}
+          />
+          <path
+            d="M15.5 4.5h4l-4 3.5h4"
+            stroke={`url(#${id})`}
+            strokeWidth="1.1"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            fill="none"
+          />
+        </>
+      );
+
+    case "movie-reel":
+      return (
+        <>
+          <defs>
+            <linearGradient id={id} x1="4" y1="4" x2="20" y2="20" gradientUnits="userSpaceOnUse">
+              <GoldStops />
+            </linearGradient>
+          </defs>
+          <rect x="4" y="7" width="16" height="11" rx="2" fill={`url(#${id})`} />
+          <path
+            d="M8 7 6 4M13 7l-1.5-3M18 7l-1.5-3"
+            stroke={`url(#${id})`}
+            strokeWidth="1.3"
+            strokeLinecap="round"
+          />
+          <circle cx="12" cy="12.5" r="2.6" style={{ fill: "var(--canvas)" }} />
+          <path d="M12 10.5v4M10.3 12.5h3.4" style={{ stroke: "var(--canvas)" }} strokeWidth="1" />
+        </>
+      );
+
+    case "cooking-pot":
+      return (
+        <>
+          <defs>
+            <linearGradient id={id} x1="4" y1="4" x2="20" y2="20" gradientUnits="userSpaceOnUse">
+              <GoldStops />
+            </linearGradient>
+          </defs>
+          <path d="M5 11h14v3a7 7 0 0 1-14 0v-3z" fill={`url(#${id})`} />
+          <path
+            d="M3.5 11h17M8 11V8.5M16 11V8.5"
+            stroke={`url(#${id})`}
+            strokeWidth="1.3"
+            strokeLinecap="round"
+          />
+          <path
+            d="M9 6c0-1 1-1 1-2M13 6c0-1 1-1 1-2"
+            stroke={`url(#${id})`}
+            strokeWidth="1"
+            strokeLinecap="round"
+            opacity={0.7}
+          />
+        </>
+      );
+
+    case "compass":
+      return (
+        <>
+          <defs>
+            <linearGradient id={id} x1="4" y1="4" x2="20" y2="20" gradientUnits="userSpaceOnUse">
+              <GoldStops />
+            </linearGradient>
+          </defs>
+          <circle cx="12" cy="12" r="8.5" fill={`url(#${id})`} />
+          <path
+            d="M14.8 9.2 13 13l-3.8 1.8L11 11l3.8-1.8z"
+            style={{ fill: "var(--canvas)" }}
+          />
         </>
       );
   }
