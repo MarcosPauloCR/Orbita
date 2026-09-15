@@ -18,14 +18,24 @@ const CATEGORIES = [
 
 type Category = (typeof CATEGORIES)[number]["key"];
 
-function TrophyBadge({ iconKind, unlocked }: { iconKind: TrophyIconKind; unlocked: boolean }) {
+function TrophyBadge({
+  iconKind,
+  unlocked,
+  color1,
+  color2,
+}: {
+  iconKind: TrophyIconKind;
+  unlocked: boolean;
+  color1?: string;
+  color2?: string;
+}) {
   return (
     <div
       className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full"
       style={{ background: "var(--accent-soft)" }}
     >
       <div style={unlocked ? undefined : { filter: "brightness(0) opacity(0.32)" }}>
-        <TrophyIcon kind={iconKind} className="h-7 w-7" />
+        <TrophyIcon kind={iconKind} className="h-7 w-7" color1={color1} color2={color2} />
       </div>
     </div>
   );
@@ -36,11 +46,13 @@ export function TrofeusView({
   userNames,
   longestStreak,
   initialCompletions,
+  autoUnlockedIds,
 }: {
   currentUserId: string;
   userNames: Record<string, string>;
   longestStreak: number;
   initialCompletions: ChallengeCompletion[];
+  autoUnlockedIds: string[];
 }) {
   const [category, setCategory] = useState<Category>("sequencia");
   const [completions, setCompletions] = useState<ChallengeCompletion[]>(initialCompletions);
@@ -71,6 +83,7 @@ export function TrofeusView({
   }, []);
 
   const completedMap = new Map(completions.map((c) => [c.challenge_id, c]));
+  const autoUnlockedSet = new Set(autoUnlockedIds);
 
   async function handleToggle(challengeId: string, nextCompleted: boolean) {
     setPendingId(challengeId);
@@ -160,32 +173,47 @@ export function TrofeusView({
       {category === "desafios" && (
         <div className="flex flex-col gap-2 pb-4">
           <p className="text-center text-[10px] text-ink-muted">
-            marquem juntos conforme forem cumprindo
+            os com 🤖 destravam sozinhos pela Agenda — os outros marcam vocês
           </p>
           {CHALLENGES.map((challenge) => {
-            const completion = completedMap.get(challenge.id);
-            const unlocked = !!completion;
+            const manualCompletion = completedMap.get(challenge.id);
+            const isAuto = !!challenge.auto;
+            const unlocked = isAuto ? autoUnlockedSet.has(challenge.id) : !!manualCompletion;
             return (
               <div key={challenge.id} className="card flex items-center gap-3">
-                <TrophyBadge iconKind={challenge.iconKind} unlocked={unlocked} />
+                <TrophyBadge
+                  iconKind={challenge.iconKind}
+                  unlocked={unlocked}
+                  color1={challenge.color1}
+                  color2={challenge.color2}
+                />
                 <div className="flex flex-1 flex-col gap-0.5">
-                  <span className="text-xs text-ink">{challenge.name}</span>
-                  {unlocked && completion ? (
-                    <span className="text-[10px] font-medium" style={{ color: "var(--accent)" }}>
-                      feito por {userNames[completion.completed_by] ?? "alguém"} · 🎉
+                  <span className="text-xs text-ink">
+                    {isAuto && "🤖 "}
+                    {challenge.name}
+                  </span>
+                  {unlocked ? (
+                    <span className="text-[10px] font-medium" style={{ color: challenge.color2 }}>
+                      {isAuto
+                        ? "detectado pela Agenda! 🎉"
+                        : `feito por ${userNames[manualCompletion?.completed_by ?? ""] ?? "alguém"} · 🎉`}
                     </span>
                   ) : (
-                    <span className="text-[10px] text-ink-muted">ainda não cumprido</span>
+                    <span className="text-[10px] text-ink-muted">
+                      {isAuto ? "aguardando a Agenda" : "ainda não cumprido"}
+                    </span>
                   )}
                 </div>
-                <button
-                  type="button"
-                  disabled={pendingId === challenge.id}
-                  onClick={() => handleToggle(challenge.id, !unlocked)}
-                  className={unlocked ? "btn-secondary !px-2.5 !py-1.5 !text-[10px]" : "btn-primary !px-2.5 !py-1.5 !text-[10px]"}
-                >
-                  {unlocked ? "desmarcar" : "marcar"}
-                </button>
+                {!isAuto && (
+                  <button
+                    type="button"
+                    disabled={pendingId === challenge.id}
+                    onClick={() => handleToggle(challenge.id, !unlocked)}
+                    className={unlocked ? "btn-secondary !px-2.5 !py-1.5 !text-[10px]" : "btn-primary !px-2.5 !py-1.5 !text-[10px]"}
+                  >
+                    {unlocked ? "desmarcar" : "marcar"}
+                  </button>
+                )}
               </div>
             );
           })}

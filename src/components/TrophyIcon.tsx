@@ -37,11 +37,11 @@ export type TrophyIconKind =
   | "cooking-pot"
   | "compass";
 
-function GoldStops() {
+function GoldStops({ from, to }: { from?: string; to?: string }) {
   return (
     <>
-      <stop style={{ stopColor: "var(--moon-a)" }} />
-      <stop offset="1" style={{ stopColor: "var(--moon-b)" }} />
+      <stop style={{ stopColor: from ?? "var(--moon-a)" }} />
+      <stop offset="1" style={{ stopColor: to ?? "var(--moon-b)" }} />
     </>
   );
 }
@@ -54,11 +54,15 @@ function Moon({
   lit,
   waxing,
   halo,
+  color1,
+  color2,
 }: {
   id: string;
   lit: number;
   waxing: boolean;
   halo?: boolean;
+  color1?: string;
+  color2?: string;
 }) {
   const R = 9;
   const shift = (1 - lit) * 2 * R * (waxing ? 1 : -1);
@@ -66,14 +70,14 @@ function Moon({
     <>
       <defs>
         <linearGradient id={id} x1="4" y1="4" x2="20" y2="20" gradientUnits="userSpaceOnUse">
-          <GoldStops />
+          <GoldStops from={color1} to={color2} />
         </linearGradient>
         <clipPath id={`${id}-clip`}>
           <circle cx="12" cy="12" r={R} />
         </clipPath>
       </defs>
       {halo && (
-        <circle cx="12" cy="12" r={R + 3} style={{ fill: "var(--moon-b)" }} opacity={0.22} />
+        <circle cx="12" cy="12" r={R + 3} style={{ fill: color2 ?? "var(--moon-b)" }} opacity={0.22} />
       )}
       <circle cx="12" cy="12" r={R} fill={`url(#${id})`} />
       <g clipPath={`url(#${id}-clip)`}>
@@ -83,14 +87,14 @@ function Moon({
   );
 }
 
-function renderIcon(kind: TrophyIconKind, id: string) {
+function renderIcon(kind: TrophyIconKind, id: string, color1?: string, color2?: string) {
   switch (kind) {
     case "spark":
       return (
         <>
           <defs>
             <linearGradient id={id} x1="4" y1="4" x2="20" y2="20" gradientUnits="userSpaceOnUse">
-              <GoldStops />
+              <GoldStops from={color1} to={color2} />
             </linearGradient>
           </defs>
           <path d="M12 3l1.8 6.2L20 11l-6.2 1.8L12 19l-1.8-6.2L4 11l6.2-1.8L12 3z" fill={`url(#${id})`} />
@@ -98,24 +102,24 @@ function renderIcon(kind: TrophyIconKind, id: string) {
       );
 
     case "moon-new":
-      return <Moon id={id} lit={0.08} waxing />;
+      return <Moon id={id} lit={0.08} waxing color1={color1} color2={color2} />;
     case "moon-crescent-waxing":
-      return <Moon id={id} lit={0.28} waxing />;
+      return <Moon id={id} lit={0.28} waxing color1={color1} color2={color2} />;
     case "moon-quarter-waxing":
-      return <Moon id={id} lit={0.5} waxing />;
+      return <Moon id={id} lit={0.5} waxing color1={color1} color2={color2} />;
     case "moon-full":
-      return <Moon id={id} lit={1} waxing />;
+      return <Moon id={id} lit={1} waxing color1={color1} color2={color2} />;
     case "moon-gibbous-waning":
-      return <Moon id={id} lit={0.75} waxing={false} />;
+      return <Moon id={id} lit={0.75} waxing={false} color1={color1} color2={color2} />;
     case "moon-quarter-waning-orbit":
       return (
         <>
-          <Moon id={id} lit={0.5} waxing={false} />
+          <Moon id={id} lit={0.5} waxing={false} color1={color1} color2={color2} />
           <circle
             cx="12"
             cy="12"
             r="11"
-            stroke="var(--accent)"
+            stroke={color2 ?? "var(--accent)"}
             strokeWidth="0.8"
             strokeDasharray="1.6 1.6"
             opacity={0.55}
@@ -123,16 +127,16 @@ function renderIcon(kind: TrophyIconKind, id: string) {
         </>
       );
     case "moon-crescent-waning":
-      return <Moon id={id} lit={0.22} waxing={false} />;
+      return <Moon id={id} lit={0.22} waxing={false} color1={color1} color2={color2} />;
     case "moon-full-halo":
-      return <Moon id={id} lit={1} waxing halo />;
+      return <Moon id={id} lit={1} waxing halo color1={color1} color2={color2} />;
 
     case "saturn":
       return (
         <>
           <defs>
             <linearGradient id={id} x1="4" y1="4" x2="20" y2="20" gradientUnits="userSpaceOnUse">
-              <GoldStops />
+              <GoldStops from={color1} to={color2} />
             </linearGradient>
           </defs>
           <ellipse cx="12" cy="13" rx="10" ry="3" stroke={`url(#${id})`} strokeWidth="1.4" />
@@ -145,7 +149,7 @@ function renderIcon(kind: TrophyIconKind, id: string) {
         <>
           <defs>
             <linearGradient id={id} x1="4" y1="4" x2="20" y2="20" gradientUnits="userSpaceOnUse">
-              <GoldStops />
+              <GoldStops from={color1} to={color2} />
             </linearGradient>
           </defs>
           <path d="M9.7 14.3 15 9" stroke={`url(#${id})`} strokeWidth="1.4" strokeLinecap="round" opacity={0.6} />
@@ -160,7 +164,7 @@ function renderIcon(kind: TrophyIconKind, id: string) {
         <>
           <defs>
             <linearGradient id={id} x1="4" y1="4" x2="20" y2="20" gradientUnits="userSpaceOnUse">
-              <GoldStops />
+              <GoldStops from={color1} to={color2} />
             </linearGradient>
           </defs>
           <path d="M6 18 16 8" stroke={`url(#${id})`} strokeWidth="1.4" strokeLinecap="round" opacity={0.5} />
@@ -176,7 +180,7 @@ function renderIcon(kind: TrophyIconKind, id: string) {
         <>
           <defs>
             <linearGradient id={id} x1="4" y1="4" x2="20" y2="20" gradientUnits="userSpaceOnUse">
-              <GoldStops />
+              <GoldStops from={color1} to={color2} />
             </linearGradient>
           </defs>
           <rect
@@ -203,7 +207,7 @@ function renderIcon(kind: TrophyIconKind, id: string) {
         <>
           <defs>
             <linearGradient id={id} x1="4" y1="4" x2="20" y2="20" gradientUnits="userSpaceOnUse">
-              <GoldStops />
+              <GoldStops from={color1} to={color2} />
             </linearGradient>
           </defs>
           <path d="M8 4l1 3 3 1-3 1-1 3-1-3-3-1 3-1 1-3z" fill={`url(#${id})`} />
@@ -225,7 +229,7 @@ function renderIcon(kind: TrophyIconKind, id: string) {
         <>
           <defs>
             <linearGradient id={id} x1="4" y1="4" x2="20" y2="20" gradientUnits="userSpaceOnUse">
-              <GoldStops />
+              <GoldStops from={color1} to={color2} />
             </linearGradient>
           </defs>
           <path
@@ -244,7 +248,7 @@ function renderIcon(kind: TrophyIconKind, id: string) {
         <>
           <defs>
             <linearGradient id={id} x1="4" y1="4" x2="20" y2="20" gradientUnits="userSpaceOnUse">
-              <GoldStops />
+              <GoldStops from={color1} to={color2} />
             </linearGradient>
           </defs>
           <path
@@ -261,7 +265,7 @@ function renderIcon(kind: TrophyIconKind, id: string) {
         <>
           <defs>
             <linearGradient id={id} x1="4" y1="4" x2="20" y2="20" gradientUnits="userSpaceOnUse">
-              <GoldStops />
+              <GoldStops from={color1} to={color2} />
             </linearGradient>
           </defs>
           <path
@@ -276,7 +280,7 @@ function renderIcon(kind: TrophyIconKind, id: string) {
         <>
           <defs>
             <linearGradient id={id} x1="4" y1="4" x2="20" y2="20" gradientUnits="userSpaceOnUse">
-              <GoldStops />
+              <GoldStops from={color1} to={color2} />
             </linearGradient>
           </defs>
           <path
@@ -298,7 +302,7 @@ function renderIcon(kind: TrophyIconKind, id: string) {
         <>
           <defs>
             <linearGradient id={id} x1="4" y1="4" x2="20" y2="20" gradientUnits="userSpaceOnUse">
-              <GoldStops />
+              <GoldStops from={color1} to={color2} />
             </linearGradient>
           </defs>
           <path d="M5 17l11-9 2.5 3-11 9L5 17z" fill={`url(#${id})`} />
@@ -308,7 +312,7 @@ function renderIcon(kind: TrophyIconKind, id: string) {
             strokeWidth="1.3"
             strokeLinecap="round"
           />
-          <path d="M4 21l3.5-3.5" stroke="var(--accent)" strokeWidth="1.3" strokeLinecap="round" />
+          <path d="M4 21l3.5-3.5" stroke={color2 ?? "var(--accent)"} strokeWidth="1.3" strokeLinecap="round" />
         </>
       );
 
@@ -317,7 +321,7 @@ function renderIcon(kind: TrophyIconKind, id: string) {
         <>
           <defs>
             <linearGradient id={id} x1="4" y1="4" x2="20" y2="20" gradientUnits="userSpaceOnUse">
-              <GoldStops />
+              <GoldStops from={color1} to={color2} />
             </linearGradient>
           </defs>
           <circle cx="12" cy="12" r="8" fill={`url(#${id})`} />
@@ -350,7 +354,7 @@ function renderIcon(kind: TrophyIconKind, id: string) {
         <>
           <defs>
             <linearGradient id={id} x1="4" y1="4" x2="20" y2="20" gradientUnits="userSpaceOnUse">
-              <GoldStops />
+              <GoldStops from={color1} to={color2} />
             </linearGradient>
           </defs>
           <path d="M8 5h8v4a4 4 0 0 1-8 0V5z" fill={`url(#${id})`} />
@@ -377,7 +381,7 @@ function renderIcon(kind: TrophyIconKind, id: string) {
         <>
           <defs>
             <linearGradient id={id} x1="4" y1="4" x2="20" y2="20" gradientUnits="userSpaceOnUse">
-              <GoldStops />
+              <GoldStops from={color1} to={color2} />
             </linearGradient>
           </defs>
           <path d="M4 17l-1-8 4.5 3L12 6l4.5 6 4.5-3-1 8H4z" fill={`url(#${id})`} />
@@ -422,7 +426,7 @@ function renderIcon(kind: TrophyIconKind, id: string) {
         <>
           <defs>
             <linearGradient id={id} x1="4" y1="4" x2="20" y2="20" gradientUnits="userSpaceOnUse">
-              <GoldStops />
+              <GoldStops from={color1} to={color2} />
             </linearGradient>
           </defs>
           <path
@@ -445,7 +449,7 @@ function renderIcon(kind: TrophyIconKind, id: string) {
         <>
           <defs>
             <linearGradient id={id} x1="4" y1="4" x2="20" y2="20" gradientUnits="userSpaceOnUse">
-              <GoldStops />
+              <GoldStops from={color1} to={color2} />
             </linearGradient>
           </defs>
           <rect x="4" y="7" width="16" height="11" rx="2" fill={`url(#${id})`} />
@@ -465,7 +469,7 @@ function renderIcon(kind: TrophyIconKind, id: string) {
         <>
           <defs>
             <linearGradient id={id} x1="4" y1="4" x2="20" y2="20" gradientUnits="userSpaceOnUse">
-              <GoldStops />
+              <GoldStops from={color1} to={color2} />
             </linearGradient>
           </defs>
           <path d="M5 11h14v3a7 7 0 0 1-14 0v-3z" fill={`url(#${id})`} />
@@ -490,7 +494,7 @@ function renderIcon(kind: TrophyIconKind, id: string) {
         <>
           <defs>
             <linearGradient id={id} x1="4" y1="4" x2="20" y2="20" gradientUnits="userSpaceOnUse">
-              <GoldStops />
+              <GoldStops from={color1} to={color2} />
             </linearGradient>
           </defs>
           <circle cx="12" cy="12" r="8.5" fill={`url(#${id})`} />
@@ -503,13 +507,25 @@ function renderIcon(kind: TrophyIconKind, id: string) {
   }
 }
 
-export function TrophyIcon({ kind, className }: { kind: TrophyIconKind; className?: string }) {
+export function TrophyIcon({
+  kind,
+  className,
+  color1,
+  color2,
+}: {
+  kind: TrophyIconKind;
+  className?: string;
+  /** Sobrepõe o dourado padrão (--moon-a/--moon-b) — usado pelos desafios
+   * a dois, que pediram pra ser coloridos em vez de dourados. */
+  color1?: string;
+  color2?: string;
+}) {
   const rawId = useId();
   const id = `trophy-${rawId.replace(/[^a-zA-Z0-9]/g, "")}`;
 
   return (
     <svg viewBox="0 0 24 24" fill="none" className={className}>
-      {renderIcon(kind, id)}
+      {renderIcon(kind, id, color1, color2)}
     </svg>
   );
 }

@@ -3,7 +3,7 @@ import { getSession } from "@/lib/auth/get-session";
 import { getPublicUsers } from "@/lib/auth/users";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { computeLongestStreak, type SignalRow } from "@/lib/streaks";
-import { getChallengeCompletions } from "./actions";
+import { getChallengeCompletions, getAutoUnlockedChallengeIds } from "./actions";
 import { TrofeusView } from "./TrofeusView";
 
 export default async function TrofeusPage() {
@@ -11,7 +11,7 @@ export default async function TrofeusPage() {
   if (!session) redirect("/");
 
   const supabase = createAdminClient();
-  const [users, signalsRes, completions] = await Promise.all([
+  const [users, signalsRes, completions, autoUnlockedIds] = await Promise.all([
     getPublicUsers(),
     supabase
       .from("signals")
@@ -19,6 +19,7 @@ export default async function TrofeusPage() {
       .order("created_at", { ascending: false })
       .limit(1000),
     getChallengeCompletions(),
+    getAutoUnlockedChallengeIds(),
   ]);
 
   const otherUser = users.find((u) => u.id !== session.userId);
@@ -32,6 +33,7 @@ export default async function TrofeusPage() {
       userNames={userNames}
       longestStreak={longestStreak}
       initialCompletions={completions}
+      autoUnlockedIds={autoUnlockedIds}
     />
   );
 }

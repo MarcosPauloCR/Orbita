@@ -1,15 +1,27 @@
 import type { TrophyIconKind } from "@/components/TrophyIcon";
+import type { ActivityType } from "@/app/app/agenda/actions";
 
 export type Challenge = {
   id: string;
   name: string;
   iconKind: TrophyIconKind;
+  color1: string;
+  color2: string;
+  // Presente só numa parte dos 100 — a Agenda só rastreia 4 tipos de
+  // atividade, então desafios sem equivalente lá (escrever uma carta,
+  // aprender uma dança...) continuam manuais. Quando tem matchTitle, só
+  // conta se o filme/prato vinculado na Agenda contiver esse texto no
+  // nome (comparação sem acento/maiúscula não é feita, é substring puro
+  // em minúsculas).
+  auto?: {
+    activityType: ActivityType;
+    matchTitle?: string;
+  };
 };
 
 // Ciclo de ícones reaproveitados dos troféus de streak — não dá pra
-// desenhar 100 SVGs únicos, então esses ~20 giram entre os 100 desafios.
-// Deixei de fora os mais "raros" (coroa, gema, arco-íris, troféu) de
-// propósito, pra eles continuarem exclusivos da sequência de dias.
+// desenhar 100 SVGs únicos. Ficam de fora os "raros" (coroa, gema,
+// arco-íris, troféu), exclusivos da sequência de dias.
 const ICON_CYCLE: TrophyIconKind[] = [
   "spark",
   "moon-crescent-waxing",
@@ -33,8 +45,21 @@ const ICON_CYCLE: TrophyIconKind[] = [
   "moon-gibbous-waning",
 ];
 
-// Nomes soltos — o id vira o índice (challenge_001, challenge_002, ...)
-// pra não precisar inventar um slug único por linha.
+// Paleta colorida (pedido explícito: nada de dourado aqui, só na
+// sequência) — gira entre os 100 desafios junto com o ciclo de ícones.
+const COLOR_CYCLE: [string, string][] = [
+  ["#22d3ee", "#0ea5e9"],
+  ["#f472b6", "#db2777"],
+  ["#facc15", "#f59e0b"],
+  ["#4ade80", "#16a34a"],
+  ["#a78bfa", "#7c3aed"],
+  ["#fb923c", "#ea580c"],
+  ["#f87171", "#dc2626"],
+  ["#2dd4bf", "#0d9488"],
+  ["#818cf8", "#4f46e5"],
+  ["#e879f9", "#c026d3"],
+];
+
 const NAMES = [
   "Dormir agarradinho a noite toda",
   "Assistir um filme antigo (de antes de vocês nascerem)",
@@ -67,19 +92,19 @@ const NAMES = [
   "Cozinhar juntos sem seguir nenhuma receita",
   "Assistir de novo o primeiro filme que viram juntos",
   "Fazer uma noite de perguntas e respostas",
-  "Escolher um filme só pela capa, sem ler a sinopse",
+  "Assistir 'Interestelar' juntos",
   "Fazer uma competição boba (quem lava louça mais rápido)",
   "Plantar alguma coisa juntos",
   "Ir a um restaurante novo que nenhum dos dois já foi",
   "Fazer uma sessão de fotos boba em casa",
   "Escrever uma 'cápsula do tempo' com previsões pro futuro",
-  "Assistir um filme em outro idioma, com legenda",
+  "Assistir 'La La Land' juntos",
   "Fazer um café da manhã na cama um pro outro",
   "Acordar cedo só pra ver o nascer do sol",
   "Ir a um evento ao ar livre (feira, show, parque)",
   "Fazer uma dança lenta na sala, só os dois",
   "Cozinhar uma sobremesa do zero",
-  "Assistir algo que nenhum dos dois nunca ouviu falar",
+  "Assistir 'O Poderoso Chefão' juntos",
   "Fazer uma lista de músicas que representam a relação",
   "Recontar como foi o dia que se conheceram, cada um do seu jeito",
   "Fazer uma competição de karaokê",
@@ -107,7 +132,7 @@ const NAMES = [
   "Fazer uma noite de spa caseiro",
   "Contar uma lembrança engraçada que só vocês dois entendem",
   "Fazer uma aposta boba (quem perder faz algo pro outro)",
-  "Assistir um filme baseado em livro que um dos dois já leu",
+  "Assistir 'Simplesmente Amor' juntos",
   "Fazer uma sessão de verdade ou desafio",
   "Ir ao cinema de verdade, na sala",
   "Fazer uma noite temática (decoração, comida e filme combinando)",
@@ -117,11 +142,11 @@ const NAMES = [
   "Recriar a primeira data certinho, do jeito que foi",
   "Escrever 5 motivos de gratidão pelo relacionamento",
   "Montar uma trilha sonora pra um dia comum, tipo filme",
-  "Assistir algo que só um dos dois gosta, pelo outro",
+  "Assistir 'Como Eu Era Antes de Você' juntos",
   "Ficar uma hora inteira só conversando, sem tela",
   "Cozinhar o prato de um restaurante que vocês amam",
   "Fazer uma competição de quem conhece melhor o outro",
-  "Assistir um filme premiado que nenhum viu ainda",
+  "Assistir 'A Culpa é das Estrelas' juntos",
   "Fazer uma surpresa de café da tarde",
   "Ir a uma livraria ou sebo e escolher um livro pro outro",
   "Planejar um sonho juntos (viagem, casa, o que for)",
@@ -138,8 +163,46 @@ const NAMES = [
   "Deixar uma mensagem na Cápsula do Tempo sobre esse desafio",
 ];
 
-export const CHALLENGES: Challenge[] = NAMES.map((name, i) => ({
-  id: `challenge_${String(i + 1).padStart(3, "0")}`,
-  name,
-  iconKind: ICON_CYCLE[i % ICON_CYCLE.length],
-}));
+export const CHALLENGES: Challenge[] = NAMES.map((name, i) => {
+  const [color1, color2] = COLOR_CYCLE[i % COLOR_CYCLE.length];
+  return {
+    id: `challenge_${String(i + 1).padStart(3, "0")}`,
+    name,
+    iconKind: ICON_CYCLE[i % ICON_CYCLE.length],
+    color1,
+    color2,
+  };
+});
+
+function setAuto(name: string, auto: Challenge["auto"]) {
+  const challenge = CHALLENGES.find((c) => c.name === name);
+  if (challenge) challenge.auto = auto;
+}
+
+// Genéricos: qualquer item desse tipo na Agenda (dia já passado) conta —
+// só um por tipo, pra não ter vários desafios destravando juntos à toa.
+setAuto("Dormir agarradinho a noite toda", { activityType: "dormir" });
+setAuto("Cozinhar um prato novo juntos", { activityType: "cozinhar" });
+setAuto("Pedir um fast food bem duvidoso só pra rir", { activityType: "sair" });
+setAuto("Assistir um filme antigo (de antes de vocês nascerem)", { activityType: "filme" });
+
+// Específicos: só destrava se o filme marcado como assistido na Agenda
+// tiver esse nome (o exemplo que o Marcos deu foi exatamente esse).
+setAuto("Assistir 'Interestelar' juntos", { activityType: "filme", matchTitle: "interestelar" });
+setAuto("Assistir 'La La Land' juntos", { activityType: "filme", matchTitle: "la la land" });
+setAuto("Assistir 'O Poderoso Chefão' juntos", {
+  activityType: "filme",
+  matchTitle: "poderoso chefão",
+});
+setAuto("Assistir 'Simplesmente Amor' juntos", {
+  activityType: "filme",
+  matchTitle: "simplesmente amor",
+});
+setAuto("Assistir 'Como Eu Era Antes de Você' juntos", {
+  activityType: "filme",
+  matchTitle: "antes de você",
+});
+setAuto("Assistir 'A Culpa é das Estrelas' juntos", {
+  activityType: "filme",
+  matchTitle: "culpa é das estrelas",
+});
