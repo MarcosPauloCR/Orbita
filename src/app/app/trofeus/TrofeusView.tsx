@@ -158,7 +158,12 @@ export function TrofeusView({
                   color2={trophy.color2}
                 />
                 <div className="flex flex-col gap-0.5">
-                  <span className="text-xs text-ink">{trophy.name}</span>
+                  <span className="text-xs text-ink">
+                    {trophy.name}
+                    {trophy.subtitle && (
+                      <span className="text-ink-muted"> · {trophy.subtitle}</span>
+                    )}
+                  </span>
                   {unlocked ? (
                     <span className="text-[10px] font-medium" style={{ color: trophy.color2 }}>
                       conquistado! 🎉
