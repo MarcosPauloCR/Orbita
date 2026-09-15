@@ -432,6 +432,19 @@ alter table agenda_items enable row level security;
 
 -- Sem policies para anon/authenticated: só a service role lê/grava.
 
+-- Desafios a dois: a lista dos ~100 desafios em si vive fixa no código
+-- (lib/challenges.ts), igual à pergunta do dia — aqui só guarda quais
+-- IDs já foram marcados como feitos, à mão, por qualquer um dos dois.
+create table if not exists challenge_completions (
+  challenge_id text primary key,
+  completed_by text not null references users (id),
+  completed_at timestamptz default now()
+);
+
+alter table challenge_completions enable row level security;
+
+-- Sem policies para anon/authenticated: só a service role lê/grava.
+
 -- Realtime (idempotente: ALTER PUBLICATION não tem IF NOT EXISTS)
 do $$
 begin

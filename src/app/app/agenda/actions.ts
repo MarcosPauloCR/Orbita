@@ -306,25 +306,3 @@ export async function deleteAgendaItem(id: string): Promise<ActionResult<null>> 
 
   return ok(null);
 }
-
-// Quantas vezes cada tipo de atividade já rolou de verdade (dia já
-// passado — o que só está planejado pro futuro não conta ainda) — usado
-// pelos desafios a dois em /app/trofeus.
-export async function getActivityDoneCounts(): Promise<Record<ActivityType, number>> {
-  const session = await getSession();
-  const empty: Record<ActivityType, number> = { sair: 0, filme: 0, cozinhar: 0, dormir: 0 };
-  if (!session) return empty;
-
-  const supabase = createAdminClient();
-  const todayKey = new Date().toISOString().slice(0, 10);
-  const { data } = await supabase
-    .from("agenda_items")
-    .select("activity_type")
-    .lte("day", todayKey);
-
-  const counts = { ...empty };
-  for (const row of data ?? []) {
-    counts[row.activity_type as ActivityType] += 1;
-  }
-  return counts;
-}
