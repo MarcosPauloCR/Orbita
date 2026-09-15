@@ -35,7 +35,12 @@ export type TrophyIconKind =
   | "sleep"
   | "movie-reel"
   | "cooking-pot"
-  | "compass";
+  | "compass"
+  | "rocket"
+  | "black-hole"
+  | "spiral-galaxy"
+  | "aurora"
+  | "astronaut";
 
 function GoldStops({ from, to }: { from?: string; to?: string }) {
   return (
@@ -502,6 +507,122 @@ function renderIcon(kind: TrophyIconKind, id: string, color1?: string, color2?: 
             d="M14.8 9.2 13 13l-3.8 1.8L11 11l3.8-1.8z"
             style={{ fill: "var(--canvas)" }}
           />
+        </>
+      );
+
+    case "rocket":
+      return (
+        <>
+          <defs>
+            <linearGradient id={id} x1="4" y1="4" x2="20" y2="20" gradientUnits="userSpaceOnUse">
+              <GoldStops from={color1} to={color2} />
+            </linearGradient>
+          </defs>
+          <path
+            d="M12 2c2.5 2 4 5.5 4 9.5 0 2-.5 3.8-1.3 5.3L12 19l-2.7-2.2C8.5 15.3 8 13.5 8 11.5 8 7.5 9.5 4 12 2z"
+            fill={`url(#${id})`}
+          />
+          <circle cx="12" cy="10" r="1.6" style={{ fill: "var(--canvas)" }} />
+          <path d="M8 13l-3 4 4-1M16 13l3 4-4-1" fill={`url(#${id})`} opacity={0.85} />
+          <path d="M10.3 18.5 12 22l1.7-3.5" fill={`url(#${id})`} opacity={0.7} />
+        </>
+      );
+
+    case "black-hole":
+      return (
+        <>
+          <defs>
+            <linearGradient id={id} x1="4" y1="4" x2="20" y2="20" gradientUnits="userSpaceOnUse">
+              <GoldStops from={color1} to={color2} />
+            </linearGradient>
+          </defs>
+          <ellipse cx="12" cy="12" rx="10" ry="4" stroke={`url(#${id})`} strokeWidth="1.5" opacity={0.9} fill="none" />
+          <ellipse
+            cx="12"
+            cy="12"
+            rx="10"
+            ry="4"
+            stroke={`url(#${id})`}
+            strokeWidth="1"
+            opacity={0.4}
+            fill="none"
+            transform="rotate(60 12 12)"
+          />
+          <circle cx="12" cy="12" r="4.3" fill="#050505" />
+        </>
+      );
+
+    case "spiral-galaxy":
+      return (
+        <>
+          <defs>
+            <linearGradient id={id} x1="4" y1="4" x2="20" y2="20" gradientUnits="userSpaceOnUse">
+              <GoldStops from={color1} to={color2} />
+            </linearGradient>
+          </defs>
+          <path
+            d="M12 12c3 0 5-2 5-4.5S15 4 12.5 4 8 5.5 8 8"
+            stroke={`url(#${id})`}
+            strokeWidth="1.4"
+            strokeLinecap="round"
+            fill="none"
+          />
+          <path
+            d="M12 12c-3.5 0-6 2.3-6 5.2S8.5 20 11.3 20 16 18 16 15"
+            stroke={`url(#${id})`}
+            strokeWidth="1.4"
+            strokeLinecap="round"
+            fill="none"
+            opacity={0.85}
+          />
+          <circle cx="12" cy="12" r="1.7" fill={`url(#${id})`} />
+        </>
+      );
+
+    case "aurora":
+      return (
+        <>
+          <path
+            d="M3 15c2-3 4-3 6 0s4 3 6 0 4-3 6 0"
+            stroke={color1 ?? "#4ade80"}
+            strokeWidth="1.6"
+            fill="none"
+            strokeLinecap="round"
+            opacity={0.9}
+          />
+          <path
+            d="M3 11c2-3 4-3 6 0s4 3 6 0 4-3 6 0"
+            stroke={color2 ?? "#a78bfa"}
+            strokeWidth="1.6"
+            fill="none"
+            strokeLinecap="round"
+            opacity={0.75}
+          />
+          <path
+            d="M4 19c2-2.5 4-2.5 6 0s4 2.5 6 0 3-2.5 5-2"
+            stroke={color1 ?? "#22d3ee"}
+            strokeWidth="1.3"
+            fill="none"
+            strokeLinecap="round"
+            opacity={0.5}
+          />
+        </>
+      );
+
+    case "astronaut":
+      return (
+        <>
+          <defs>
+            <linearGradient id={id} x1="4" y1="4" x2="20" y2="20" gradientUnits="userSpaceOnUse">
+              <GoldStops from={color1} to={color2} />
+            </linearGradient>
+          </defs>
+          <circle cx="12" cy="12" r="8.5" fill={`url(#${id})`} />
+          <path
+            d="M6.5 12a5.5 5.5 0 0 1 11 0c0 2-1.2 3-3 3H9.5c-1.8 0-3-1-3-3z"
+            style={{ fill: "var(--canvas)" }}
+          />
+          <circle cx="9.7" cy="11" r="0.9" fill={`url(#${id})`} opacity={0.6} />
         </>
       );
   }

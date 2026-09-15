@@ -230,7 +230,12 @@ export function SignalDashboard({
             </span>
           )}
           <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full" style={{ background: "var(--accent-soft)" }}>
-            <TrophyIcon kind={current?.iconKind ?? "moon-new"} className="h-6 w-6" />
+            <TrophyIcon
+              kind={current?.iconKind ?? "moon-new"}
+              className="h-6 w-6"
+              color1={current?.color1}
+              color2={current?.color2}
+            />
           </div>
           <p className="mt-2 font-display text-2xl text-ink">{streak}</p>
           <p className="section-label mt-0.5">dias seguidos</p>

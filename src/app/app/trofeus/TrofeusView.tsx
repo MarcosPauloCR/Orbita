@@ -151,11 +151,16 @@ export function TrofeusView({
             const unlocked = longestStreak >= trophy.days;
             return (
               <div key={trophy.days} className="card flex items-center gap-3">
-                <TrophyBadge iconKind={trophy.iconKind} unlocked={unlocked} />
+                <TrophyBadge
+                  iconKind={trophy.iconKind}
+                  unlocked={unlocked}
+                  color1={trophy.color1}
+                  color2={trophy.color2}
+                />
                 <div className="flex flex-col gap-0.5">
                   <span className="text-xs text-ink">{trophy.name}</span>
                   {unlocked ? (
-                    <span className="text-[10px] font-medium" style={{ color: "var(--accent)" }}>
+                    <span className="text-[10px] font-medium" style={{ color: trophy.color2 }}>
                       conquistado! 🎉
                     </span>
                   ) : (
