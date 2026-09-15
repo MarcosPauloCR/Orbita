@@ -14,6 +14,7 @@ import type { ActionResult } from "@/lib/action-result";
 import { ActivityCalendar } from "./ActivityCalendar";
 import NeonBorder from "@/components/NeonBorder";
 import { Phosphor } from "@/components/Phosphor";
+import { TrophyIcon } from "@/components/TrophyIcon";
 import { useThemeVars } from "@/lib/useThemeVars";
 
 type HistoryGroup = {
@@ -227,8 +228,8 @@ export function SignalDashboard({
               🏆
             </span>
           )}
-          <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full text-xl" style={{ background: "var(--accent-soft)" }}>
-            {current?.icon ?? "🌑"}
+          <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full" style={{ background: "var(--accent-soft)" }}>
+            <TrophyIcon kind={current?.iconKind ?? "moon-new"} className="h-6 w-6" />
           </div>
           <p className="mt-2 font-display text-2xl text-ink">{streak}</p>
           <p className="section-label mt-0.5">dias seguidos</p>
