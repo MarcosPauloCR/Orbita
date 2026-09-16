@@ -247,9 +247,14 @@ export function SignalDashboard({
               faltam {next.days - streak} p/ {next.icon} {next.name}
             </p>
           )}
-          <Link href="/app/trofeus" className="chip mt-2 !text-[9px]">
-            🏆 ver troféus
-          </Link>
+          <div className="mt-2 flex justify-center gap-1.5">
+            <Link href="/app/trofeus" className="chip !text-[9px]">
+              🏆 troféus
+            </Link>
+            <Link href="/app/diario" className="chip !text-[9px]">
+              📔 diário
+            </Link>
+          </div>
         </div>
         <div className="card text-center">
           <NeonBorder

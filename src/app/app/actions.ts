@@ -320,6 +320,70 @@ function monthsSinceIfAnniversary(first: Date, today: Date): number | null {
   return months > 0 ? months : null;
 }
 
+// ---------- Resumo da semana ----------
+
+export type WeeklyRecap = {
+  signalDays: number;
+  agendaDone: number;
+  photosAdded: number;
+  challengesCompleted: number;
+};
+
+export async function getWeeklyRecap(): Promise<WeeklyRecap> {
+  const empty: WeeklyRecap = {
+    signalDays: 0,
+    agendaDone: 0,
+    photosAdded: 0,
+    challengesCompleted: 0,
+  };
+
+  const session = await getSession();
+  if (!session) return empty;
+
+  const otherUser = (await getPublicUsers()).find((u) => u.id !== session.userId);
+  if (!otherUser) return empty;
+  const userIds: [string, string] = [session.userId, otherUser.id];
+
+  const supabase = createAdminClient();
+  const since = new Date(Date.now() - 7 * 86400000).toISOString();
+  const todayKey = brazilDateKey();
+  const weekStartKey = brazilDateKey(new Date(Date.now() - 7 * 86400000));
+
+  const [signalsRes, photosRes, agendaRes, challengesRes] = await Promise.all([
+    supabase
+      .from("signals")
+      .select("from_user, created_at")
+      .eq("type", "normal")
+      .gte("created_at", since),
+    supabase
+      .from("updates")
+      .select("id", { count: "exact", head: true })
+      .eq("type", "photo")
+      .gte("created_at", since),
+    supabase.from("agenda_items").select("id").gte("day", weekStartKey).lte("day", todayKey),
+    supabase
+      .from("challenge_completions")
+      .select("challenge_id", { count: "exact", head: true })
+      .gte("completed_at", since),
+  ]);
+
+  const signalDates = mutualDatesFrom(
+    groupRowsByUtcDate(
+      signalsRes.data ?? [],
+      (r) => r.created_at,
+      (r) => r.from_user
+    ),
+    userIds
+  );
+
+  return {
+    signalDays: signalDates.size,
+    agendaDone: (agendaRes.data ?? []).length,
+    photosAdded: photosRes.count ?? 0,
+    challengesCompleted: challengesRes.count ?? 0,
+  };
+}
+
 export async function getAnniversaries(): Promise<Anniversary[]> {
   const session = await getSession();
   if (!session) return [];

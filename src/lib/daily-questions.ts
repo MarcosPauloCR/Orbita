@@ -78,7 +78,7 @@ export const DAILY_HYPOTHETICALS = [
 // em vez de à meia-noite. O servidor roda em UTC (Vercel), então o
 // deslocamento tem que ser feito à mão, não dá pra confiar no fuso local
 // do processo.
-const BRAZIL_OFFSET_HOURS = 3;
+export const BRAZIL_OFFSET_HOURS = 3;
 
 function toBrazilDate(date: Date): Date {
   return new Date(date.getTime() - BRAZIL_OFFSET_HOURS * 3600000);

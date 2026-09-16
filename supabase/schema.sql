@@ -428,6 +428,10 @@ alter table agenda_items add column if not exists is_surprise boolean not null d
 -- do que foi planejado.
 alter table agenda_items add column if not exists recap text;
 
+-- Marca quando o lembrete por push (~2h antes do horário marcado) já foi
+-- disparado, pra rota de cron não avisar duas vezes o mesmo item.
+alter table agenda_items add column if not exists reminded_at timestamptz;
+
 alter table agenda_items enable row level security;
 
 -- Sem policies para anon/authenticated: só a service role lê/grava.
