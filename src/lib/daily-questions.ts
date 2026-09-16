@@ -73,12 +73,30 @@ export const DAILY_HYPOTHETICALS = [
   "Se a gente pudesse conversar com nós mesmos daqui a 10 anos, o que perguntaria?",
 ] as const;
 
+// Brasil fica em UTC-3 o ano todo (sem horário de verão desde 2019) — sem
+// isso, "o dia virou" era decidido em UTC, trocando a pergunta às 21h daqui
+// em vez de à meia-noite. O servidor roda em UTC (Vercel), então o
+// deslocamento tem que ser feito à mão, não dá pra confiar no fuso local
+// do processo.
+const BRAZIL_OFFSET_HOURS = 3;
+
+function toBrazilDate(date: Date): Date {
+  return new Date(date.getTime() - BRAZIL_OFFSET_HOURS * 3600000);
+}
+
+// Chave "YYYY-MM-DD" do dia civil de Brasília — usada tanto pra escolher a
+// pergunta quanto pra chave `question_date` salva no banco (os dois
+// precisam virar juntos, ou a resposta de hoje fica presa no dia errado).
+export function brazilDateKey(date: Date = new Date()): string {
+  return toBrazilDate(date).toISOString().slice(0, 10);
+}
+
 function pickQuestion(
   list: readonly string[],
   date: Date,
   salt: number
 ): string {
-  const daysSinceEpoch = Math.floor(date.getTime() / 86400000) + salt;
+  const daysSinceEpoch = Math.floor(toBrazilDate(date).getTime() / 86400000) + salt;
   const index = ((daysSinceEpoch % list.length) + list.length) % list.length;
   return list[index];
 }

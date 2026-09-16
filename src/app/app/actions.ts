@@ -15,6 +15,7 @@ import { ok, fail, type ActionResult } from "@/lib/action-result";
 import {
   getTodayQuestion,
   getTodayHypothetical,
+  brazilDateKey,
 } from "@/lib/daily-questions";
 import { groupRowsByUtcDate, mutualDatesFrom } from "@/lib/streaks";
 
@@ -26,8 +27,11 @@ function utcDayBounds(date = new Date()) {
   return { start: start.toISOString(), end: end.toISOString() };
 }
 
+// A pergunta do dia usa o dia civil de Brasília (ver brazilDateKey) — a
+// chave salva no banco precisa virar junto com a pergunta escolhida, ou a
+// resposta de hoje fica gravada com a data de ontem.
 function todayDateKey(): string {
-  return new Date().toISOString().slice(0, 10);
+  return brazilDateKey();
 }
 
 export async function logoutAction() {
