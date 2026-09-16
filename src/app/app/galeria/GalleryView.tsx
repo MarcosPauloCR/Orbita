@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
-import VerticalParallax from "@/components/VerticalParallax";
+import GrainyCarousel from "@/components/GrainyCarousel";
 import { uploadGalleryPhoto, deleteGalleryPhoto, type GalleryPhoto } from "./actions";
 
 const GALLERY_CHANNEL = "orbita-galeria";
@@ -94,7 +94,7 @@ export function GalleryView({
     channelRef.current?.send({ type: "broadcast", event: "deleted", payload: { id } });
   }
 
-  const parallaxItems = photos.map((p) => ({ image: { src: p.url }, offsetY: 0 }));
+  const photoUrls = photos.map((p) => p.url);
   const myPhotos = photos.filter((p) => p.from_user === currentUserId);
 
   return (
@@ -120,13 +120,14 @@ export function GalleryView({
         <p className="text-center text-xs text-ink-muted">nenhuma foto ainda</p>
       ) : (
         <div className="card-flush relative h-80 w-full">
-          <VerticalParallax
-            items={parallaxItems}
+          <GrainyCarousel
+            images={photoUrls}
             background="transparent"
-            cardWidth={230}
-            cardHeight={170}
-            radius={20}
-            style={{ width: "100%", height: "100%" }}
+            cardWidth={190}
+            cardHeight={260}
+            gap={14}
+            rounded={12}
+            style={{ minWidth: 0, minHeight: 0, width: "100%", height: "100%" }}
           />
           <button
             type="button"
@@ -141,13 +142,14 @@ export function GalleryView({
 
       {isFullscreen && (
         <div className="fixed inset-0 z-50 bg-canvas">
-          <VerticalParallax
-            items={parallaxItems}
+          <GrainyCarousel
+            images={photoUrls}
             background="transparent"
-            cardWidth={320}
-            cardHeight={240}
-            radius={24}
-            style={{ width: "100%", height: "100%" }}
+            cardWidth={280}
+            cardHeight={400}
+            gap={20}
+            rounded={12}
+            style={{ minWidth: 0, minHeight: 0, width: "100%", height: "100%" }}
           />
           <button
             type="button"
