@@ -60,7 +60,19 @@ export async function sendPushToUser(
     .select("endpoint, p256dh, auth")
     .eq("user_id", userId);
 
-  if (error || !subs) return;
+  if (error) {
+    console.error(`Push: falha ao ler inscrições. user=${userId} erro=${error.message}`);
+    return;
+  }
+
+  // Caso mais silencioso: a linha sumiu (ou nunca existiu) e o envio vira um
+  // no-op perfeito — nenhuma exceção, nenhum sintoma além de "parou de
+  // notificar". O app se reinscreve sozinho ao abrir, então isto aparecendo
+  // no log aponta pro celular que não foi aberto desde a perda da inscrição.
+  if (!subs || subs.length === 0) {
+    console.error(`Push: nenhuma inscrição ativa. user=${userId}`);
+    return;
+  }
 
   const json = JSON.stringify(payload);
 
@@ -78,7 +90,19 @@ export async function sendPushToUser(
             .from("push_subscriptions")
             .delete()
             .eq("endpoint", sub.endpoint);
+          console.error(
+            `Push: inscrição expirada (${statusCode}), removida. user=${userId} endpoint=${sub.endpoint.slice(0, 60)}…`
+          );
+          return;
         }
+        // Sem este log, uma falha de envio (chave VAPID trocada, payload
+        // recusado, serviço do navegador fora) some sem deixar rastro e o
+        // sintoma vira só "parou de notificar", sem causa observável.
+        console.error(
+          `Push: falha no envio. user=${userId} status=${statusCode ?? "?"} endpoint=${sub.endpoint.slice(0, 60)}… erro=${
+            (err as Error).message
+          }`
+        );
       }
     })
   );
