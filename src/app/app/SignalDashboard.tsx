@@ -7,7 +7,7 @@ import {
   computeMutualStreak,
   computeLongestStreak,
   bestSignalDayCount,
-  toUtcDateKey,
+  toBrazilDateKey,
   currentTrophy,
   type SignalRow,
 } from "@/lib/streaks";
@@ -154,14 +154,14 @@ export function SignalDashboard({
   const isStreakRecord = streak > 0 && streak >= longestStreakEver;
 
   const { isDayRecord, todayCount } = useMemo(() => {
-    const todayKey = toUtcDateKey(new Date().toISOString());
+    const todayKey = toBrazilDateKey(new Date().toISOString());
     const bestOverall = bestSignalDayCount(signals);
     const todayTotal = signals.filter(
-      (s) => (s.type ?? "normal") === "normal" && toUtcDateKey(s.created_at) === todayKey
+      (s) => (s.type ?? "normal") === "normal" && toBrazilDateKey(s.created_at) === todayKey
     ).length;
     const bestExcludingToday =
       todayTotal >= bestOverall ? bestSignalDayCount(
-        signals.filter((s) => toUtcDateKey(s.created_at) !== todayKey)
+        signals.filter((s) => toBrazilDateKey(s.created_at) !== todayKey)
       ) : bestOverall;
     return {
       todayCount: todayTotal,

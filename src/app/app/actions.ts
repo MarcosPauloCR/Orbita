@@ -17,7 +17,7 @@ import {
   getTodayHypothetical,
   brazilDateKey,
 } from "@/lib/daily-questions";
-import { groupRowsByUtcDate, mutualDatesFrom } from "@/lib/streaks";
+import { groupRowsByUtcDate, mutualDatesFrom, toBrazilDateKey } from "@/lib/streaks";
 
 function utcDayBounds(date = new Date()) {
   const start = new Date(
@@ -263,10 +263,14 @@ export async function getCompleteDaysCount(): Promise<number> {
       .eq("category", "reflective"),
   ]);
 
+  // signals/checkins guardam timestamp bruto (UTC) — convertidos pro dia
+  // civil de Brasília antes de agrupar, senão um sinal ou humor depois das
+  // 21h caía num "dia" diferente do resto (mesmo bug da pergunta do dia).
+  // daily_answers.question_date já nasce nesse formato, não precisa disso.
   const signalDates = mutualDatesFrom(
     groupRowsByUtcDate(
       signalsRes.data ?? [],
-      (r) => r.created_at,
+      (r) => toBrazilDateKey(r.created_at),
       (r) => r.from_user
     ),
     userIds
@@ -274,7 +278,7 @@ export async function getCompleteDaysCount(): Promise<number> {
   const checkinDates = mutualDatesFrom(
     groupRowsByUtcDate(
       checkinsRes.data ?? [],
-      (r) => r.created_at,
+      (r) => toBrazilDateKey(r.created_at),
       (r) => r.from_user
     ),
     userIds
@@ -370,7 +374,7 @@ export async function getWeeklyRecap(): Promise<WeeklyRecap> {
   const signalDates = mutualDatesFrom(
     groupRowsByUtcDate(
       signalsRes.data ?? [],
-      (r) => r.created_at,
+      (r) => toBrazilDateKey(r.created_at),
       (r) => r.from_user
     ),
     userIds

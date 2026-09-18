@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { groupSignalsByDay, type SignalRow } from "@/lib/streaks";
+import { BRAZIL_OFFSET_HOURS } from "@/lib/daily-questions";
 
 const WEEKDAYS = ["D", "S", "T", "Q", "Q", "S", "S"];
 const MONTH_NAMES = [
@@ -13,6 +14,13 @@ function dateKey(y: number, m: number, d: number): string {
   return `${y}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
 }
 
+// "Agora" deslocado pro dia civil de Brasília — mesmo truque de
+// daily-questions.ts, senão o mês/dia de "hoje" pulava 3h cedo demais
+// (às 21h em vez de meia-noite).
+function brazilNow(): Date {
+  return new Date(Date.now() - BRAZIL_OFFSET_HOURS * 3600000);
+}
+
 export function ActivityCalendar({
   signals,
   userIds,
@@ -21,7 +29,7 @@ export function ActivityCalendar({
   userIds: [string, string];
 }) {
   const [cursor, setCursor] = useState(() => {
-    const now = new Date();
+    const now = brazilNow();
     return { year: now.getUTCFullYear(), month: now.getUTCMonth() };
   });
 
@@ -31,7 +39,7 @@ export function ActivityCalendar({
   const firstWeekday = new Date(Date.UTC(year, month, 1)).getUTCDay();
   const daysInMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
   const todayKey = useMemo(() => {
-    const now = new Date();
+    const now = brazilNow();
     return dateKey(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
   }, []);
 

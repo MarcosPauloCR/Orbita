@@ -1,11 +1,18 @@
+import { BRAZIL_OFFSET_HOURS, brazilDateKey } from "./daily-questions";
+
 export type SignalRow = {
   from_user: string;
   created_at: string;
   type?: "normal" | "sos";
 };
 
-export function toUtcDateKey(iso: string): string {
-  return new Date(iso).toISOString().slice(0, 10);
+// Mesmo ajuste de fuso da pergunta do dia (ver daily-questions.ts): sem
+// isso, o "dia" de um sinal virava à meia-noite UTC = 21h em Brasília,
+// fazendo o streak resetar 3h mais cedo do que o esperado.
+export function toBrazilDateKey(iso: string): string {
+  return new Date(new Date(iso).getTime() - BRAZIL_OFFSET_HOURS * 3600000)
+    .toISOString()
+    .slice(0, 10);
 }
 
 /** Mapa data -> conjunto de usuários, genérico pra qualquer tabela com
@@ -43,7 +50,7 @@ export function groupSignalsByDay(
   const byDate = new Map<string, Set<string>>();
   for (const s of signals) {
     if (s.type === "sos") continue;
-    const key = toUtcDateKey(s.created_at);
+    const key = toBrazilDateKey(s.created_at);
     if (!byDate.has(key)) byDate.set(key, new Set());
     byDate.get(key)!.add(s.from_user);
   }
@@ -63,8 +70,11 @@ export function computeMutualStreak(
     if (userIds.every((u) => users.has(u))) mutualDates.add(date);
   });
 
-  const cursor = new Date();
-  cursor.setUTCHours(0, 0, 0, 0);
+  // Ponteiro de calendário: não representa um instante real, é só a
+  // etiqueta "YYYY-MM-DD" do dia civil de Brasília, andada um dia por vez
+  // pra trás — pode usar campos UTC daqui pra frente porque o fuso já foi
+  // resolvido ao gerar a etiqueta inicial (brazilDateKey).
+  const cursor = new Date(`${brazilDateKey()}T00:00:00Z`);
   let key = cursor.toISOString().slice(0, 10);
 
   if (!mutualDates.has(key)) {
@@ -112,7 +122,7 @@ export function bestSignalDayCount(signals: SignalRow[]): number {
   const totals = new Map<string, number>();
   for (const s of signals) {
     if (s.type === "sos") continue;
-    const key = toUtcDateKey(s.created_at);
+    const key = toBrazilDateKey(s.created_at);
     totals.set(key, (totals.get(key) ?? 0) + 1);
   }
   let best = 0;
