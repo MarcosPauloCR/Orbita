@@ -16,15 +16,19 @@ import {
   getTodayQuestion,
   getTodayHypothetical,
   brazilDateKey,
+  BRAZIL_OFFSET_HOURS,
 } from "@/lib/daily-questions";
 import { groupRowsByUtcDate, mutualDatesFrom, toBrazilDateKey } from "@/lib/streaks";
 
-function utcDayBounds(date = new Date()) {
-  const start = new Date(
-    Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate())
-  );
-  const end = new Date(start.getTime() + 86400000);
-  return { start: start.toISOString(), end: end.toISOString() };
+// Check-ins só guardam o timestamp, então "hoje" é recortado entre duas
+// meias-noites de Brasília — recortar em UTC zerava o humor às 21h daqui.
+function brazilDayBounds() {
+  const startMs =
+    new Date(`${brazilDateKey()}T00:00:00Z`).getTime() + BRAZIL_OFFSET_HOURS * 3600000;
+  return {
+    start: new Date(startMs).toISOString(),
+    end: new Date(startMs + 86400000).toISOString(),
+  };
 }
 
 // A pergunta do dia usa o dia civil de Brasília (ver brazilDateKey) — a
@@ -105,7 +109,7 @@ export async function getTodayCheckins(): Promise<{
   if (!session) return { mine: null, other: null };
 
   const supabase = createAdminClient();
-  const { start, end } = utcDayBounds();
+  const { start, end } = brazilDayBounds();
   const { data } = await supabase
     .from("checkins")
     .select("from_user, mood, note")
@@ -132,7 +136,7 @@ export async function getMoodHistory(days = 7): Promise<MoodHistoryEntry[]> {
     .order("created_at", { ascending: true });
 
   return (data ?? []).map((row) => ({
-    date: row.created_at.slice(0, 10),
+    date: toBrazilDateKey(row.created_at),
     from_user: row.from_user,
     mood: row.mood,
   }));
@@ -149,7 +153,7 @@ export async function submitCheckin(
   }
 
   const supabase = createAdminClient();
-  const { start, end } = utcDayBounds();
+  const { start, end } = brazilDayBounds();
   const trimmedNote = note.trim() || null;
 
   const { data: existing } = await supabase
@@ -317,10 +321,10 @@ async function firstCreatedAt(
 }
 
 function monthsSinceIfAnniversary(first: Date, today: Date): number | null {
-  if (first.getUTCDate() !== today.getUTCDate()) return null;
-  const months =
-    (today.getUTCFullYear() - first.getUTCFullYear()) * 12 +
-    (today.getUTCMonth() - first.getUTCMonth());
+  const [fy, fm, fd] = brazilDateKey(first).split("-").map(Number);
+  const [ty, tm, td] = brazilDateKey(today).split("-").map(Number);
+  if (fd !== td) return null;
+  const months = (ty - fy) * 12 + (tm - fm);
   return months > 0 ? months : null;
 }
 

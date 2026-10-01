@@ -4,6 +4,7 @@ import { getSession } from "@/lib/auth/get-session";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { ok, fail, type ActionResult } from "@/lib/action-result";
 import { CHALLENGES } from "@/lib/challenges";
+import { brazilDateKey } from "@/lib/daily-questions";
 import type { ActivityType } from "../agenda/actions";
 
 export type ChallengeCompletion = {
@@ -68,7 +69,7 @@ export async function getAutoUnlockedChallengeIds(): Promise<string[]> {
   if (autoChallenges.length === 0) return [];
 
   const supabase = createAdminClient();
-  const todayKey = new Date().toISOString().slice(0, 10);
+  const todayKey = brazilDateKey();
 
   const { data } = await supabase
     .from("agenda_items")

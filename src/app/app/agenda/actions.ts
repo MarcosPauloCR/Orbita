@@ -5,6 +5,7 @@ import { getPublicUsers } from "@/lib/auth/users";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendPushToUser } from "@/lib/push";
 import { ok, fail, type ActionResult } from "@/lib/action-result";
+import { brazilDateKey } from "@/lib/daily-questions";
 
 export type ActivityType = "sair" | "filme" | "cozinhar" | "dormir";
 
@@ -119,7 +120,7 @@ export async function getNextAgendaDay(): Promise<string | null> {
   if (!session) return null;
 
   const supabase = createAdminClient();
-  const todayKey = new Date().toISOString().slice(0, 10);
+  const todayKey = brazilDateKey();
   const { data } = await supabase
     .from("agenda_items")
     .select("day")
@@ -281,7 +282,7 @@ export async function addAgendaRecap(
     .single();
 
   if (fetchError || !row) return fail("Item não encontrado.");
-  if (row.day > new Date().toISOString().slice(0, 10)) {
+  if (row.day > brazilDateKey()) {
     return fail("Esse dia ainda não chegou.");
   }
 
