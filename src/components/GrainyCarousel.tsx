@@ -119,11 +119,13 @@ const DEFAULT_SCROLL: Required<ScrollGroup> = {
     zoom: 5,
 }
 
-const GRAIN_WIDTH = 1
+// Largura da faixa granulada, em múltiplos da sobra lateral ao lado do
+// card central (ver `edge` no loop de render).
+const GRAIN_WIDTH = 1.6
 
 const DEFAULT_GRAIN: Required<GrainGroup> = {
     speed: 50,
-    amount: 10,
+    amount: 1.5,
     scale: 250,
 }
 
@@ -536,7 +538,10 @@ function __OriginkitBase_GrainyCarousel(props: Props) {
 
             const roundedPct = c.rounded
 
-            const edge = (drawW / vw) * c.edgeWidth
+            // Medida a partir da sobra ao lado do card central, não da largura
+            // do card: proporcional ao card, a faixa cobria quase o quadro todo
+            // num carrossel estreito e granulava a própria foto em destaque.
+            const edge = (Math.max(0, vw - drawW) / (2 * vw)) * c.edgeWidth
 
             if (!drag.active && loaded.length && Number.isFinite(c.snapInterval)) {
                 if (c.mode === "smooth") {
