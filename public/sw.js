@@ -69,39 +69,29 @@ self.addEventListener("push", (event) => {
         includeUncontrolled: true,
       });
 
-      // CUIDADO: `matchAll` devolve a aba mesmo quando ela está em segundo
-      // plano ou congelada pelo sistema (celular com o app minimizado ou a
-      // tela bloqueada). Uma aba congelada não roda JS e não toca áudio, ou
-      // seja: pular a notificação nesse caso deixava o push sem NENHUM
-      // efeito. Pior, `userVisibleOnly: true` é uma promessa de sempre
-      // mostrar algo visível — descumprir repetidamente faz o navegador
-      // primeiro mostrar um aviso genérico dele e depois cancelar a
-      // inscrição de push sozinho. Por isso o teste aqui é de visibilidade
-      // real, não de "existe uma aba".
-      const visibleClients = clientsList.filter(
-        (client) => client.visibilityState === "visible"
-      );
-
-      // Só a aba visível recebe o aviso pra tocar o áudio: uma aba oculta
-      // ou não consegue tocar (congelada) ou tocaria junto com o som da
-      // notificação, dobrando o alerta.
-      for (const client of visibleClients) {
-        client.postMessage({ type: "signal-received", urgent: !!payload.urgent });
+      // `matchAll` devolve a aba mesmo minimizada ou congelada (tela
+      // bloqueada), e aba congelada não roda JS — por isso o teste é de
+      // visibilidade real, não de "existe uma aba".
+      for (const client of clientsList) {
+        if (client.visibilityState === "visible") {
+          client.postMessage({ type: "signal-received", urgent: !!payload.urgent });
+        }
       }
 
-      // App realmente na frente: a própria página toca o áudio customizado e
-      // mostra o overlay, então não precisa de notificação. "SOS" é exceção —
-      // sobe notificação e vibra de qualquer jeito.
-      if (visibleClients.length > 0 && !payload.urgent) return;
-
-      // App fechado, minimizado ou com a tela bloqueada (ou sinal urgente):
-      // só o Service Worker está vivo, não dá pra tocar áudio customizado —
-      // precisa de uma notificação real pro navegador liberar o som padrão
-      // do sistema. Conteúdo neutro, sem revelar do que se trata.
+      // Cada push vira notificação, inclusive com o app aberto na tela. O
+      // iPhone (WebKit) conta cada push que não mostra notificação — estar
+      // com o app visível NÃO isenta — e no 3º cancela a inscrição sozinho,
+      // sem aviso. Pular a notificação com o app aberto era o que fazia o
+      // iPhone parar de receber depois de alguns dias.
+      //
+      // `renotify`: com a mesma `tag`, a notificação nova substitui a
+      // anterior em silêncio — sem isso, do 2º sinal em diante não tocava
+      // nada enquanto o primeiro ainda estivesse na bandeja.
       await self.registration.showNotification(payload.title || "Órbita", {
         body: payload.body || "1 novo item",
         icon: "/icons/icon-192.png",
         tag: payload.urgent ? "orbita-sos" : "orbita-signal",
+        renotify: true,
         requireInteraction: !!payload.urgent,
         vibrate: payload.urgent ? [200, 100, 200, 100, 200] : undefined,
       });
