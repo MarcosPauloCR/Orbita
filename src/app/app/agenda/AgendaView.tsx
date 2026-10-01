@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -408,11 +408,13 @@ export function AgendaView({
   initialItems,
   initialMovieOptions,
   initialCookingOptions,
+  footer,
 }: {
   currentUserId: string;
   initialItems: AgendaItem[];
   initialMovieOptions: MovieOption[];
   initialCookingOptions: CookingOption[];
+  footer?: ReactNode;
 }) {
   const [items, setItems] = useState<AgendaItem[]>(initialItems);
   const [movieOptions, setMovieOptions] = useState<MovieOption[]>(initialMovieOptions);
@@ -557,7 +559,7 @@ export function AgendaView({
   const selectedItems = itemsByDay.get(selectedDay) ?? [];
 
   return (
-    <div className="flex w-full max-w-sm flex-1 flex-col gap-4 overflow-y-auto overflow-x-hidden min-h-0">
+    <div className="flex w-full max-w-sm flex-1 flex-col gap-4 overflow-y-auto overflow-x-hidden min-h-0 pb-4">
       {weekSuggestion && !nudgeDismissed && (
         <div className="card flex flex-col gap-2">
           <p className="text-xs text-ink">🤖 essa semana ainda tá sem nada marcado!</p>
@@ -666,7 +668,7 @@ export function AgendaView({
         </div>
       </div>
 
-      <div className="flex flex-col gap-3 pb-4">
+      <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between gap-2">
           <h3 className="section-label">{formatDayHeading(selectedDay)}</h3>
           <button
@@ -702,6 +704,8 @@ export function AgendaView({
           />
         )}
       </div>
+
+      {footer}
     </div>
   );
 }

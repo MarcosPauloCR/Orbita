@@ -7,7 +7,6 @@ import { SignalDashboard } from "./SignalDashboard";
 import { MoodCheckin } from "./MoodCheckin";
 import { DailyQuestion } from "./DailyQuestion";
 import { NextDateCard } from "./NextDateCard";
-import { WeeklyRecapCard } from "./WeeklyRecapCard";
 import {
   sendSignal,
   sendSOS,
@@ -16,7 +15,6 @@ import {
   getTodayAnswers,
   getCompleteDaysCount,
   getAnniversaries,
-  getWeeklyRecap,
 } from "./actions";
 import { getNextAgendaDay } from "./agenda/actions";
 
@@ -39,7 +37,6 @@ export default async function AppPage() {
     completeDaysCount,
     anniversaries,
     nextAgendaDay,
-    weeklyRecap,
   ] = await Promise.all([
     getPublicUsers(),
     supabase.from("signals").select("id", { count: "exact", head: true }),
@@ -55,7 +52,6 @@ export default async function AppPage() {
     getCompleteDaysCount(),
     getAnniversaries(),
     getNextAgendaDay(),
-    getWeeklyRecap(),
   ]);
 
   const otherUser = users.find((u) => u.id !== session.userId);
@@ -80,7 +76,6 @@ export default async function AppPage() {
       )}
 
       <NextDateCard day={nextAgendaDay} />
-      <WeeklyRecapCard recap={weeklyRecap} />
 
       <SignalDashboard
         currentUserId={session.userId}
