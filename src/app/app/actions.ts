@@ -19,12 +19,14 @@ import {
   BRAZIL_OFFSET_HOURS,
 } from "@/lib/daily-questions";
 import { groupRowsByUtcDate, mutualDatesFrom, toBrazilDateKey } from "@/lib/streaks";
+import { getAgendaItems, type AgendaItem } from "./agenda/actions";
+import { getGalleryPhotos, type GalleryPhoto } from "./galeria/actions";
 
 // Check-ins só guardam o timestamp, então "hoje" é recortado entre duas
 // meias-noites de Brasília — recortar em UTC zerava o humor às 21h daqui.
-function brazilDayBounds() {
+function brazilDayBounds(dateKey = brazilDateKey()) {
   const startMs =
-    new Date(`${brazilDateKey()}T00:00:00Z`).getTime() + BRAZIL_OFFSET_HOURS * 3600000;
+    new Date(`${dateKey}T00:00:00Z`).getTime() + BRAZIL_OFFSET_HOURS * 3600000;
   return {
     start: new Date(startMs).toISOString(),
     end: new Date(startMs + 86400000).toISOString(),
@@ -330,20 +332,17 @@ function monthsSinceIfAnniversary(first: Date, today: Date): number | null {
 
 // ---------- Resumo da semana ----------
 
+// "Semana" = os 7 dias civis de Brasília até hoje, o mesmo recorte pras
+// quatro listas — com uma janela corrida de 168h o "x/7" chegava a 8/7.
 export type WeeklyRecap = {
-  signalDays: number;
-  agendaDone: number;
-  photosAdded: number;
-  challengesCompleted: number;
+  days: { key: string; mutual: boolean }[];
+  agendaItems: AgendaItem[];
+  photos: GalleryPhoto[];
+  challenges: { id: string; completed_at: string }[];
 };
 
 export async function getWeeklyRecap(): Promise<WeeklyRecap> {
-  const empty: WeeklyRecap = {
-    signalDays: 0,
-    agendaDone: 0,
-    photosAdded: 0,
-    challengesCompleted: 0,
-  };
+  const empty: WeeklyRecap = { days: [], agendaItems: [], photos: [], challenges: [] };
 
   const session = await getSession();
   if (!session) return empty;
@@ -352,30 +351,32 @@ export async function getWeeklyRecap(): Promise<WeeklyRecap> {
   if (!otherUser) return empty;
   const userIds: [string, string] = [session.userId, otherUser.id];
 
-  const supabase = createAdminClient();
-  const since = new Date(Date.now() - 7 * 86400000).toISOString();
-  const todayKey = brazilDateKey();
-  const weekStartKey = brazilDateKey(new Date(Date.now() - 7 * 86400000));
+  const dayKeys = Array.from({ length: 7 }, (_, i) =>
+    brazilDateKey(new Date(Date.now() - (6 - i) * 86400000))
+  );
+  const firstDay = dayKeys[0];
+  const today = dayKeys[6];
+  const since = brazilDayBounds(firstDay).start;
 
-  const [signalsRes, photosRes, agendaRes, challengesRes] = await Promise.all([
+  const supabase = createAdminClient();
+  // getAgendaItems já esconde os detalhes de surpresas que ainda não
+  // chegaram na hora — o resumo não pode passar por fora disso.
+  const [signalsRes, agendaItems, photos, challengesRes] = await Promise.all([
     supabase
       .from("signals")
       .select("from_user, created_at")
       .eq("type", "normal")
       .gte("created_at", since),
-    supabase
-      .from("updates")
-      .select("id", { count: "exact", head: true })
-      .eq("type", "photo")
-      .gte("created_at", since),
-    supabase.from("agenda_items").select("id").gte("day", weekStartKey).lte("day", todayKey),
+    getAgendaItems(),
+    getGalleryPhotos(since),
     supabase
       .from("challenge_completions")
-      .select("challenge_id", { count: "exact", head: true })
-      .gte("completed_at", since),
+      .select("challenge_id, completed_at")
+      .gte("completed_at", since)
+      .order("completed_at", { ascending: true }),
   ]);
 
-  const signalDates = mutualDatesFrom(
+  const mutualDates = mutualDatesFrom(
     groupRowsByUtcDate(
       signalsRes.data ?? [],
       (r) => toBrazilDateKey(r.created_at),
@@ -385,10 +386,13 @@ export async function getWeeklyRecap(): Promise<WeeklyRecap> {
   );
 
   return {
-    signalDays: signalDates.size,
-    agendaDone: (agendaRes.data ?? []).length,
-    photosAdded: photosRes.count ?? 0,
-    challengesCompleted: challengesRes.count ?? 0,
+    days: dayKeys.map((key) => ({ key, mutual: mutualDates.has(key) })),
+    agendaItems: agendaItems.filter((item) => item.day >= firstDay && item.day <= today),
+    photos,
+    challenges: (challengesRes.data ?? []).map((r) => ({
+      id: r.challenge_id,
+      completed_at: r.completed_at,
+    })),
   };
 }
 

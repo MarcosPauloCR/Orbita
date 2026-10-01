@@ -28,15 +28,17 @@ async function notifyOtherUser(exceptUserId: string): Promise<void> {
   }
 }
 
-export async function getGalleryPhotos(): Promise<GalleryPhoto[]> {
+export async function getGalleryPhotos(since?: string): Promise<GalleryPhoto[]> {
   const session = await getSession();
   if (!session) return [];
 
   const supabase = createAdminClient();
-  const { data, error } = await supabase
+  let query = supabase
     .from("updates")
     .select("id, from_user, content, created_at")
-    .eq("type", "photo")
+    .eq("type", "photo");
+  if (since) query = query.gte("created_at", since);
+  const { data, error } = await query
     .order("created_at", { ascending: false })
     .limit(100);
 

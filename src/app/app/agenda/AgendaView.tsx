@@ -16,6 +16,7 @@ import {
 } from "./actions";
 import NeonBorder from "@/components/NeonBorder";
 import { useThemeVars } from "@/lib/useThemeVars";
+import { ACTIVITY_LABELS } from "./activity-labels";
 
 const AGENDA_CHANNEL = "orbita-agenda";
 
@@ -24,13 +25,6 @@ const MONTH_NAMES = [
   "janeiro", "fevereiro", "março", "abril", "maio", "junho",
   "julho", "agosto", "setembro", "outubro", "novembro", "dezembro",
 ];
-
-const ACTIVITY_LABELS: Record<ActivityType, { icon: string; label: string }> = {
-  sair: { icon: "🚗", label: "sair" },
-  filme: { icon: "🎬", label: "assistir filme" },
-  cozinhar: { icon: "🍳", label: "cozinhar" },
-  dormir: { icon: "🛌", label: "dormir agarradinho" },
-};
 
 function dateKey(y: number, m: number, d: number): string {
   return `${y}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
