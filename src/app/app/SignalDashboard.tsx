@@ -218,7 +218,7 @@ export function SignalDashboard({
           <NeonBorder
             style={{ position: "absolute", inset: 0, pointerEvents: "none" }}
             color={accentColor}
-            rounded={34}
+            radius={23}
             thickness={2}
             borderSize={45}
             glow={0}
@@ -260,7 +260,7 @@ export function SignalDashboard({
           <NeonBorder
             style={{ position: "absolute", inset: 0, pointerEvents: "none" }}
             color={accentColor}
-            rounded={34}
+            radius={23}
             thickness={2}
             borderSize={45}
             glow={0}
@@ -288,7 +288,7 @@ export function SignalDashboard({
         <NeonBorder
           style={{ position: "absolute", inset: 0, pointerEvents: "none" }}
           color={accentColor}
-          rounded={34}
+          radius={23}
           thickness={2}
           borderSize={45}
           glow={0}

@@ -586,10 +586,19 @@ export function AgendaView({
       )}
 
       <div className="card-flush p-4">
+        {/* card-flush corta o que passa da borda, então o anel entra 2px; o
+            NeonBorder força width/height 100%, e sem o "auto" o inset só
+            deslocava o anel pra direita e pra baixo em vez de encolher. */}
         <NeonBorder
-          style={{ position: "absolute", inset: 2, pointerEvents: "none" }}
+          style={{
+            position: "absolute",
+            inset: 2,
+            width: "auto",
+            height: "auto",
+            pointerEvents: "none",
+          }}
           color={accentColor}
-          rounded={20}
+          radius={21}
           thickness={2}
           borderSize={45}
           glow={0}

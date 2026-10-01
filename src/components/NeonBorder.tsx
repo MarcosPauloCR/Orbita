@@ -10,6 +10,9 @@ type Movement = "continuous" | "step";
 type Props = {
   color?: string;
   rounded?: number;
+  // Raio fixo em px; tem prioridade sobre `rounded`, que é % da metade do
+  // lado menor e por isso só acompanha o canto do card numa altura certa.
+  radius?: number;
   thickness?: number;
   borderSize?: number;
   glow?: number;
@@ -171,6 +174,7 @@ export default function NeonBorder(props: Props) {
   const {
     color = DEFAULTS.color,
     rounded = DEFAULTS.rounded,
+    radius: radiusPx,
     thickness = DEFAULTS.thickness,
     borderSize = DEFAULTS.borderSize,
     glow = DEFAULTS.glow,
@@ -254,7 +258,8 @@ export default function NeonBorder(props: Props) {
 
   const thick = Math.max(1, Math.min(10, thickness));
 
-  const radius = (Math.max(0, Math.min(100, rounded)) / 100) * (Math.min(size.w, size.h) / 2);
+  const radius =
+    radiusPx ?? (Math.max(0, Math.min(100, rounded)) / 100) * (Math.min(size.w, size.h) / 2);
 
   const amount = Math.max(0, Math.min(100, glow)) / 100;
 
